@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import './css/style.css';
-import 'bootstrap/dist/css/bootstrap.css';
-
+import 'daisyui/dist/full.css'; // Import DaisyUI and Tailwind
+import './css/style.css'; // Import custom CSS
 interface Item {
   id: number;
   name: string;
@@ -32,6 +31,7 @@ const PosPage: React.FC = () => {
 
   const [order, setOrder] = useState<Item[]>([]);
   const [totOrders, setTotOrders] = useState(0);
+  const [activeTab, setActiveTab] = useState<'drinks' | 'foods'>('drinks'); // State for active tab
   
   const getDate = () => {
     const today = new Date();
@@ -42,7 +42,7 @@ const PosPage: React.FC = () => {
   };
 
   const addToOrder = (item: Item, qty: number) => {
-    let updatedOrder = [...order];
+    const updatedOrder = [...order];
     const existingItem = updatedOrder.find((i) => i.id === item.id);
 
     if (existingItem) {
@@ -70,7 +70,7 @@ const PosPage: React.FC = () => {
   };
 
   const getTotal = () => {
-    return order.reduce((total, i) => total + i.price * (i.qty || 1), 0);
+    return order.reduce((total, i) => total + (i.price * (i.qty || 1)), 0);
   };
 
   const clearOrder = () => {
@@ -84,93 +84,96 @@ const PosPage: React.FC = () => {
   };
 
   return (
-    <div className="container">
-      <nav className="navbar navbar-default">
-        <div className="container-fluid">
-          <div className="navbar-header">
-            <a className="navbar-brand" href="#">POS React TypeScript Demo</a>
-          </div>
+    <div className="container mx-auto p-4">
+      <div className="navbar bg-base-200 rounded-lg">
+        <div className="flex-1">
+          <a className="btn btn-ghost normal-case text-xl">POS React TypeScript Demo</a>
         </div>
-      </nav>
+      </div>
 
-      <div className="row">
-        <div className="col-md-6">
-          <div className="panel panel-primary">
-            <div className="panel-heading">
-              <div className="row">
-                <div className="col-md-4">Order Summary</div>
-                <div className="col-md-4">Today is: {getDate()}</div>
-                <div className="col-md-3 col-md-push-1">Total Orders: <span className="badge">{totOrders}</span></div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+        <div className="box">
+          <div className="text-info flex justify-between">
+            <span>Order Summary</span>
+            <span>Today: {getDate()}</span>
+            <span>Total Orders: <span className="badge badge-primary">{totOrders}</span></span>
+          </div>
+
+          <div className="overflow-auto max-h-64 mt-4">
+            {order.length === 0 && <div className="text-warning">Nothing ordered yet!</div>}
+            <ul className="menu bg-base-100 rounded-box">
+              {order.map((item) => (
+                <li key={item.id} className="flex justify-between">
+                  <div className="badge badge-info">{item.qty}</div>
+                  <div>{item.name}</div>
+                  <div className="badge badge-success">${(item.price * (item.qty || 1)).toFixed(2)}</div>
+                  <div>
+                    <button className="btn btn-xs btn-success mr-1" onClick={() => addToOrder(item, 1)}>+</button>
+                    <button className="btn btn-xs btn-warning mr-1" onClick={() => removeOneEntity(item)}>-</button>
+                    <button className="btn btn-xs btn-error" onClick={() => removeItem(item)}>X</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {order.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold">Total: ${getTotal().toFixed(2)}</h3>
+              <div className="buttons mt-2">
+                <button className="btn btn-outline btn-secondary mr-2" onClick={clearOrder}>Clear</button>
+                <button className="btn btn-primary" onClick={checkout}>Checkout</button>
               </div>
             </div>
-            <div className="panel-body" style={{ maxHeight: '320px', overflow: 'auto' }}>
-              {order.length === 0 && <div className="text-warning">Nothing ordered yet!</div>}
-              <ul className="list-group">
-                {order.map((item) => (
-                  <li className="list-group-item" key={item.id}>
-                    <div className="row">
-                      <div className="col-md-1">
-                        <span className="badge badge-left">{item.qty}</span>
-                      </div>
-                      <div className="col-md-4">{item.name}</div>
-                      <div className="col-md-1">
-                        <div className="label label-success">${(item.price * (item.qty || 1)).toFixed(2)}</div>
-                      </div>
-                      <div className="col-md-1 col-md-push-1">
-                        <div className="label label-warning">${item.price.toFixed(2)}</div>
-                      </div>
-                      <div className="col-md-2 col-md-push-2">
-                        <button className="btn btn-success btn-xs" onClick={() => addToOrder(item, 1)}>
-                          <span className="glyphicon glyphicon-plus"></span>
-                        </button>
-                        <button className="btn btn-warning btn-xs" onClick={() => removeOneEntity(item)}>
-                          <span className="glyphicon glyphicon-minus"></span>
-                        </button>
-                      </div>
-                      <div className="col-md-1 col-md-push-2">
-                        <button className="btn btn-danger btn-xs" onClick={() => removeItem(item)}>
-                          <span className="glyphicon glyphicon-trash"></span>
-                        </button>
-                      </div>
-                    </div>
-                  </li>
+          )}
+        </div>
+
+        <div className="box">
+          <div className="tabs tabs-boxed">
+            <a 
+              className={`tab ${activeTab === 'drinks' ? 'tab-active' : ''}`} 
+              onClick={() => setActiveTab('drinks')}
+            >
+              Drinks
+            </a>
+            <a 
+              className={`tab ${activeTab === 'foods' ? 'tab-active' : ''}`} 
+              onClick={() => setActiveTab('foods')}
+            >
+              Foods
+            </a>
+          </div>
+
+          <div className="tab-content mt-4">
+            {activeTab === 'drinks' && (
+              <div className="flex flex-wrap gap-2">
+                {drinks.map((drink) => (
+                  <button 
+                    className="btn btn-primary btn-pos btn-marginTop" 
+                    key={drink.id} 
+                    onClick={() => addToOrder(drink, 1)}
+                  >
+                    <p>{drink.name}</p>
+                    
+                    {drink.name}
+                  </button>
                 ))}
-              </ul>
-            </div>
-            {order.length > 0 && (
-              <div className="panel-footer">
-                <h3>Total: ${getTotal().toFixed(2)}</h3>
-                <button className="btn btn-default btn-marginTop" onClick={clearOrder}>Clear</button>
-                <button className="btn btn-danger btn-marginTop" onClick={checkout}>Checkout</button>
               </div>
             )}
-          </div>
-        </div>
 
-        <div className="col-md-6">
-          <div className="panel panel-primary">
-            <div className="panel-body">
-              <ul className="nav nav-tabs" role="tablist">
-                <li className="active"><a href="#drink" role="tab" data-toggle="tab">Drinks</a></li>
-                <li><a href="#food" role="tab" data-toggle="tab">Food</a></li>
-              </ul>
-              <div className="tab-content">
-                <div role="tabpanel" className="tab-pane active" id="drink">
-                  {drinks.map((drink) => (
-                    <button className="btn btn-primary btn-pos btn-marginTop" key={drink.id} onClick={() => addToOrder(drink, 1)}>
-                      {drink.name}
-                    </button>
-                  ))}
-                </div>
-                <div role="tabpanel" className="tab-pane" id="food">
-                  {foods.map((food) => (
-                    <button className="btn btn-warning btn-pos btn-marginTop" key={food.id} onClick={() => addToOrder(food, 1)}>
-                      {food.name}
-                    </button>
-                  ))}
-                </div>
+            {activeTab === 'foods' && (
+              <div className="flex flex-wrap gap-2">
+                {foods.map((food) => (
+                  <button 
+                    className="btn btn-warning btn-pos btn-marginTop" 
+                    key={food.id} 
+                    onClick={() => addToOrder(food, 1)}
+                  >
+                    {food.name}
+                  </button>
+                ))}
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

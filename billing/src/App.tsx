@@ -16,7 +16,6 @@ function App() {
       <header className="App-header">
       </header>
       <PosPage></PosPage>
-      summa
     </div>
   );
 }
