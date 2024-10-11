@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import 'daisyui/dist/full.css'; // Import DaisyUI and Tailwind
 import './css/style.css'; // Import custom CSS
+
 interface Item {
   id: number;
   name: string;
@@ -9,6 +10,8 @@ interface Item {
 }
 
 const PosPage: React.FC = () => {
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark'); // Dark mode as default
+  const [searchTerm, setSearchTerm] = useState(''); // State for search term
   const [drinks] = useState<Item[]>([
     { id: 0, name: "Still Water", price: 1 },
     { id: 1, name: "Sparkling Water", price: 1.10 },
@@ -18,15 +21,6 @@ const PosPage: React.FC = () => {
     { id: 5, name: "Hot Chocolate", price: 2.10 },
     { id: 6, name: "Coke", price: 2.00 },
     { id: 7, name: "Orange Juice", price: 1.90 }
-  ]);
-
-  const [foods] = useState<Item[]>([
-    { id: 8, name: "Waffle", price: 1.50 },
-    { id: 9, name: "Brioche", price: 1.30 },
-    { id: 10, name: "Cheesecake", price: 1.70 },
-    { id: 11, name: "Sandwich", price: 2.70 },
-    { id: 12, name: "Donuts", price: 1.90 },
-    { id: 13, name: "Tortilla", price: 1.90 }
   ]);
 
   const [order, setOrder] = useState<Item[]>([]);
@@ -84,14 +78,27 @@ const PosPage: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log(activeTab);
-  }, [activeTab]); // Dependency array includes activeTab
+    document.documentElement.setAttribute('data-theme', theme); // Set theme
+  }, [theme]);
+
+  const filteredDrinks = drinks.filter(drink =>
+    drink.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="container mx-auto p-4">
+      {/* Navbar with Dark/Light Mode Toggle */}
       <div className="navbar bg-base-200 rounded-lg">
         <div className="flex-1">
           <a className="btn btn-ghost normal-case text-xl">Selvam broilers POS Demo</a>
+        </div>
+        <div className="flex-none">
+          <button
+            className="btn btn-sm btn-primary"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          >
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
         </div>
       </div>
 
@@ -145,7 +152,6 @@ const PosPage: React.FC = () => {
               </div>
             </div>
           )}
-
         </div>
 
         <div className="box">
@@ -156,38 +162,34 @@ const PosPage: React.FC = () => {
             >
               Items
             </a>
-            {/* <a
-              className={`tab ${activeTab === 'foods' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('foods')}
-            >
-              Foods
-            </a> */}
           </div>
 
-          {/* <div className="tab-content mt-4"> */}
-          <div>
-            {activeTab === 'items' && (
-              <div className="flex flex-wrap gap-2">
-                {drinks.map((drink) => (
-                  <button
-                    className="btn btn-primary btn-pos btn-marginTop"
-                    key={drink.id}
-                    onClick={() => addToOrder(drink, 1)}
-                  >
+          {/* Search bar */}
+          <div className="mt-4">
+            <input
+              type="text"
+              placeholder="Search for items..."
+              className="input input-bordered w-full"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
 
-                    {drink.name}
-                  </button>
-                ))}
-              </div>
-            )}
-
-
+          {/* Display filtered items with price */}
+          <div className="flex flex-wrap gap-2 mt-2">
+            {filteredDrinks.map((drink) => (
+              <button
+                className="btn btn-primary btn-pos btn-marginTop"
+                key={drink.id}
+                onClick={() => addToOrder(drink, 1)}
+              >
+                {drink.name} - ₹{drink.price.toFixed(2)}
+              </button>
+            ))}
           </div>
         </div>
       </div>
     </div>
-
-
   );
 };
 
