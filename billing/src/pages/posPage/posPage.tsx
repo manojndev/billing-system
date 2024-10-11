@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import 'daisyui/dist/full.css'; // Import DaisyUI and Tailwind
 import './css/style.css'; // Import custom CSS
 interface Item {
@@ -31,8 +31,8 @@ const PosPage: React.FC = () => {
 
   const [order, setOrder] = useState<Item[]>([]);
   const [totOrders, setTotOrders] = useState(0);
-  const [activeTab, setActiveTab] = useState<'drinks' | 'foods'>('drinks'); // State for active tab
-  
+  const [activeTab, setActiveTab] = useState<'items'>('items'); // State for active tab
+
   const getDate = () => {
     const today = new Date();
     const mm = today.getMonth() + 1;
@@ -83,11 +83,15 @@ const PosPage: React.FC = () => {
     setTotOrders(totOrders + 1);
   };
 
+  useEffect(() => {
+    console.log(activeTab);
+  }, [activeTab]); // Dependency array includes activeTab
+
   return (
     <div className="container mx-auto p-4">
       <div className="navbar bg-base-200 rounded-lg">
         <div className="flex-1">
-          <a className="btn btn-ghost normal-case text-xl">POS React TypeScript Demo</a>
+          <a className="btn btn-ghost normal-case text-xl">Selvam broilers POS Demo</a>
         </div>
       </div>
 
@@ -101,83 +105,89 @@ const PosPage: React.FC = () => {
 
           <div className="overflow-auto max-h-64 mt-4">
             {order.length === 0 && <div className="text-warning">Nothing ordered yet!</div>}
-            <ul className="menu bg-base-100 rounded-box">
-              {order.map((item) => (
-                <li key={item.id} className="flex justify-between">
-                  <div className="badge badge-info">{item.qty}</div>
-                  <div>{item.name}</div>
-                  <div className="badge badge-success">${(item.price * (item.qty || 1)).toFixed(2)}</div>
-                  <div>
-                    <button className="btn btn-xs btn-success mr-1" onClick={() => addToOrder(item, 1)}>+</button>
-                    <button className="btn btn-xs btn-warning mr-1" onClick={() => removeOneEntity(item)}>-</button>
-                    <button className="btn btn-xs btn-error" onClick={() => removeItem(item)}>X</button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+
+            <table className="table w-full bg-base-100 rounded-box">
+              <thead>
+                <tr>
+                  <th>Qty</th>
+                  <th>Item</th>
+                  <th>Price</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {order.map((item) => (
+                  <tr key={item.id} className="hover">
+                    <td className="text-center">
+                      <span className="badge badge-info">{item.qty}</span>
+                    </td>
+                    <td>{item.name}</td>
+                    <td className="text-center">
+                      <span className="badge badge-success">₹{(item.price * (item.qty || 1)).toFixed(2)}</span>
+                    </td>
+                    <td className="flex justify-center space-x-1">
+                      <button className="btn btn-xs btn-success" onClick={() => addToOrder(item, 1)}>+</button>
+                      <button className="btn btn-xs btn-warning" onClick={() => removeOneEntity(item)}>-</button>
+                      <button className="btn btn-xs btn-error" onClick={() => removeItem(item)}>X</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           {order.length > 0 && (
             <div className="mt-4">
-              <h3 className="text-lg font-semibold">Total: ${getTotal().toFixed(2)}</h3>
+              <h3 className="text-lg font-semibold">Total: ₹{getTotal().toFixed(2)}</h3>
               <div className="buttons mt-2">
                 <button className="btn btn-outline btn-secondary mr-2" onClick={clearOrder}>Clear</button>
                 <button className="btn btn-primary" onClick={checkout}>Checkout</button>
               </div>
             </div>
           )}
+
         </div>
 
         <div className="box">
           <div className="tabs tabs-boxed">
-            <a 
-              className={`tab ${activeTab === 'drinks' ? 'tab-active' : ''}`} 
-              onClick={() => setActiveTab('drinks')}
+            <a
+              className={`tab ${activeTab === 'items' ? 'tab-active' : ''}`}
+              onClick={() => setActiveTab('items')}
             >
-              Drinks
+              Items
             </a>
-            <a 
-              className={`tab ${activeTab === 'foods' ? 'tab-active' : ''}`} 
+            {/* <a
+              className={`tab ${activeTab === 'foods' ? 'tab-active' : ''}`}
               onClick={() => setActiveTab('foods')}
             >
               Foods
-            </a>
+            </a> */}
           </div>
 
-          <div className="tab-content mt-4">
-            {activeTab === 'drinks' && (
+          {/* <div className="tab-content mt-4"> */}
+          <div>
+            {activeTab === 'items' && (
               <div className="flex flex-wrap gap-2">
                 {drinks.map((drink) => (
-                  <button 
-                    className="btn btn-primary btn-pos btn-marginTop" 
-                    key={drink.id} 
+                  <button
+                    className="btn btn-primary btn-pos btn-marginTop"
+                    key={drink.id}
                     onClick={() => addToOrder(drink, 1)}
                   >
-                    <p>{drink.name}</p>
-                    
+
                     {drink.name}
                   </button>
                 ))}
               </div>
             )}
 
-            {activeTab === 'foods' && (
-              <div className="flex flex-wrap gap-2">
-                {foods.map((food) => (
-                  <button 
-                    className="btn btn-warning btn-pos btn-marginTop" 
-                    key={food.id} 
-                    onClick={() => addToOrder(food, 1)}
-                  >
-                    {food.name}
-                  </button>
-                ))}
-              </div>
-            )}
+
           </div>
         </div>
       </div>
     </div>
+
+
   );
 };
 
