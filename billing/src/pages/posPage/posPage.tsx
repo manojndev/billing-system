@@ -7,25 +7,25 @@ interface Item {
   name: string;
   price: number;
   qty?: number;
+  customQuantity?: 'yes' | 'no';
 }
 
 const PosPage: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark'); // Dark mode as default
   const [searchTerm, setSearchTerm] = useState(''); // State for search term
   const [drinks] = useState<Item[]>([
-    { id: 0, name: "Still Water", price: 1 },
-    { id: 1, name: "Sparkling Water", price: 1.10 },
-    { id: 2, name: "Espresso", price: 1.20 },
-    { id: 3, name: "Cappuccino", price: 1.30 },
-    { id: 4, name: "Tea", price: 1.90 },
-    { id: 5, name: "Hot Chocolate", price: 2.10 },
-    { id: 6, name: "Coke", price: 2.00 },
-    { id: 7, name: "Orange Juice", price: 1.90 }
+    { id: 0, name: "Chicken 1kg", price: 290, customQuantity: 'yes' },
+    { id: 1, name: "Kaadai", price: 300, customQuantity: 'no' },
+    { id: 2, name: "Chicken 1.5kg", price: 300, customQuantity: 'no' },
+    { id: 3, name: "Chicken 3kg", price: 350, customQuantity: 'yes' }
   ]);
 
   const [order, setOrder] = useState<Item[]>([]);
   const [totOrders, setTotOrders] = useState(0);
   const [activeTab, setActiveTab] = useState<'items'>('items'); // State for active tab
+  const [showModal, setShowModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [customQty, setCustomQty] = useState(1);
 
   const getDate = () => {
     const today = new Date();
@@ -46,6 +46,24 @@ const PosPage: React.FC = () => {
       updatedOrder.push(item);
     }
     setOrder(updatedOrder);
+  };
+
+  const handleItemClick = (item: Item) => {
+    if (item.customQuantity === 'yes') {
+      setSelectedItem(item);
+      setShowModal(true);
+    } else {
+      addToOrder(item, 1);
+    }
+  };
+
+  const handleConfirmQty = () => {
+    if (selectedItem) {
+      addToOrder(selectedItem, customQty);
+      setShowModal(false);
+      setCustomQty(1);
+      setSelectedItem(null);
+    }
   };
 
   const removeOneEntity = (item: Item) => {
@@ -72,7 +90,7 @@ const PosPage: React.FC = () => {
   };
 
   const checkout = () => {
-    alert(`${getDate()} - Order Number: ${totOrders + 1}\n\nOrder amount: $${getTotal().toFixed(2)}\n\nPayment received. Thanks.`);
+    alert(`${getDate()} - Order Number: ₹${totOrders + 1}\n\nOrder amount: ₹${getTotal().toFixed(2)}\n\nPayment received. Thanks.`);
     clearOrder();
     setTotOrders(totOrders + 1);
   };
@@ -87,6 +105,26 @@ const PosPage: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4">
+      {/* Modal for entering custom quantity */}
+      {showModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">Enter Quantity for {selectedItem?.name}</h3>
+            <input
+              type="number"
+              min="1"
+              className="input input-bordered w-full mt-4"
+              value={customQty}
+              onChange={(e) => setCustomQty(Number(e.target.value))}
+            />
+            <div className="modal-action">
+              <button className="btn btn-primary" onClick={handleConfirmQty}>OK</button>
+              <button className="btn" onClick={() => setShowModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Navbar with Dark/Light Mode Toggle */}
       <div className="navbar bg-base-200 rounded-lg">
         <div className="flex-1">
@@ -119,6 +157,7 @@ const PosPage: React.FC = () => {
                   <th>Qty</th>
                   <th>Item</th>
                   <th>Price</th>
+                  <th>Total</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -129,9 +168,8 @@ const PosPage: React.FC = () => {
                       <span className="badge badge-info">{item.qty}</span>
                     </td>
                     <td>{item.name}</td>
-                    <td className="text-center">
-                      <span className="badge badge-success">₹{(item.price * (item.qty || 1)).toFixed(2)}</span>
-                    </td>
+                    <td className="text-center">₹{item.price.toFixed(2)}</td>
+                    <td className="text-center">₹{(item.price * (item.qty || 1)).toFixed(2)}</td>
                     <td className="flex justify-center space-x-1">
                       <button className="btn btn-xs btn-success" onClick={() => addToOrder(item, 1)}>+</button>
                       <button className="btn btn-xs btn-warning" onClick={() => removeOneEntity(item)}>-</button>
@@ -181,7 +219,7 @@ const PosPage: React.FC = () => {
               <button
                 className="btn btn-primary btn-pos btn-marginTop"
                 key={drink.id}
-                onClick={() => addToOrder(drink, 1)}
+                onClick={() => handleItemClick(drink)}
               >
                 {drink.name} - ₹{drink.price.toFixed(2)}
               </button>
