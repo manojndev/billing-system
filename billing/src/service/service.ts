@@ -1,6 +1,6 @@
 // Import Firebase dependencies
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, onValue ,push, get , child } from "firebase/database";
+import { getDatabase, ref, push, get, update, remove, onValue, query, limitToFirst, startAfter,child } from "firebase/database";
 import firebaseconfig from "../firebase/firebaseconfig";
 // Initialize Firebase app
 
@@ -64,4 +64,42 @@ export const getOrderCount = () => {
         reject(error);
       });
   });
+};
+
+export const fetchItems = (lastKey: string | null, pageSize: number) => {
+  return new Promise<any[]>((resolve, reject) => {
+    let itemsQuery = query(ref(database, "items"), limitToFirst(pageSize));
+    if (lastKey) {
+      itemsQuery = query(ref(database, "items"), startAfter(lastKey), limitToFirst(pageSize));
+    }
+
+    onValue(
+      itemsQuery,
+      (snapshot) => {
+        const items: any[] = [];
+        snapshot.forEach((childSnapshot) => {
+          items.push({ id: childSnapshot.key, ...childSnapshot.val() });
+        });
+        resolve(items);
+      },
+      (error) => {
+        reject(error);
+      }
+    );
+  });
+};
+
+// Add a new item
+export const addItem = (itemData: any) => {
+  return push(ref(database, "items"), itemData);
+};
+
+// Update an existing item
+export const updateItem = (id: string, itemData: any) => {
+  return update(ref(database, `items/${id}`), itemData);
+};
+
+// Function to delete an item
+export const deleteItem = (id: string) => {
+  return remove(ref(database, `items/${id}`));
 };
