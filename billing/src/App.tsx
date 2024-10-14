@@ -3,6 +3,8 @@ import logo from './logo.svg';
 // import './App.css';
 import { fetchWelcomeStart } from './redux/slices/initial/initialslice';
 import { useDispatch } from 'react-redux';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import AdminPage from './pages/adminpage/adminPage';
 import PosPage from './pages/posPage/posPage';
 function App() {
   const dispatch = useDispatch();
@@ -12,11 +14,16 @@ function App() {
   }, [dispatch]); // Add dispatch to dependency array
 
   return (
-    <div className="App">
-      <header className="App-header">
-      </header>
-      <PosPage></PosPage>
-    </div>
+    <Router>
+      <div>
+        <Routes>
+          <Route path="/" element={<PosPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+        </Routes>
+      </div>
+    </Router>
+
+    
   );
 }
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import 'daisyui/dist/full.css';
 import './css/style.css';
+import { insertOrder } from '../../service/service'; // Import the insertOrder function
 
 interface Item {
   id: number;
@@ -8,8 +9,8 @@ interface Item {
   price: number;
   qty?: number;
   customQuantity?: 'yes' | 'no';
-  predefinedQuantities?: number[]; // Add this line for predefined quantities
-  unit?: string; // Add this line for the unit (kg, nos, etc.)
+  predefinedQuantities?: number[];
+  unit?: string;
 }
 
 const PosPage: React.FC = () => {
@@ -102,13 +103,26 @@ const PosPage: React.FC = () => {
   };
 
   const checkout = () => {
-    alert(
-      `${getDate()} - Order Number: ₹${totOrders + 1}\n\nOrder amount: ₹${getTotal().toFixed(
-        2
-      )}\n\nPayment received. Thanks.`
-    );
-    clearOrder();
-    setTotOrders(totOrders + 1);
+    const orderData = {
+      date: getDate(),
+      orderNumber: totOrders + 1,
+      items: order,
+      totalAmount: getTotal().toFixed(2),
+    };
+
+    // Insert the order into Firebase
+    insertOrder(orderData)
+      .then(() => {
+        alert(
+          `${orderData.date} - Order Number: ₹${orderData.orderNumber}\n\nOrder amount: ₹${orderData.totalAmount}\n\nPayment received. Thanks.`
+        );
+        clearOrder();
+        setTotOrders(totOrders + 1);
+      })
+      .catch((error) => {
+        console.error("Failed to insert order:", error);
+        alert("Failed to process order. Please try again.");
+      });
   };
 
   useEffect(() => {
@@ -118,7 +132,6 @@ const PosPage: React.FC = () => {
   const filteredDrinks = drinks.filter((drink) =>
     drink.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
   return (
     <div className="container mx-auto p-4">
       {showModal && (
