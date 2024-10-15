@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import 'daisyui/dist/full.css';
 import './css/style.css';
-import { insertOrder } from '../../service/service'; // Import the insertOrder function
+import { getOrderCount, insertOrder } from '../../service/service'; // Import the insertOrder function
 
 interface Item {
   id: number;
@@ -30,6 +30,7 @@ const PosPage: React.FC = () => {
   const [customQty, setCustomQty] = useState(1);
   const [inputMode, setInputMode] = useState<'quantity' | 'price'>('quantity');
   const [customPrice, setCustomPrice] = useState(0);
+  const [counterLoading, setCounterLoading] = useState(true);
 
   const getDate = () => {
     const today = new Date();
@@ -102,6 +103,9 @@ const PosPage: React.FC = () => {
     setOrder([]);
   };
 
+
+
+
   const checkout = () => {
     const orderData = {
       date: getDate(),
@@ -128,12 +132,30 @@ const PosPage: React.FC = () => {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+  
+  ///loader and getting information from the services 
+  useEffect(() => {
+    getOrderCount().then((count) => {
+      setTotOrders(count+1);
+    }).finally(()=>{
+      setCounterLoading(false);
+    });
+  })
+  ///loader and getting information from the services 
+
 
   const filteredDrinks = drinks.filter((drink) =>
     drink.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
   return (
     <div className="container mx-auto p-4">
+    {counterLoading && (
+  <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-50">
+    <div className="flex flex-col items-center">
+      <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+      <p className="text-white text-lg">Loading...</p>
+    </div>
+  </div>)}
       {showModal && (
         <div className="modal modal-open">
           <div className="modal-box">
@@ -314,6 +336,7 @@ const PosPage: React.FC = () => {
         </div>
       </div>
     </div>
+    
   );
 };
 
