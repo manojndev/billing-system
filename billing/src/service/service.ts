@@ -78,7 +78,7 @@ export const fetchItems = (lastKey: string | null, pageSize: number) => {
       (snapshot) => {
         const items: any[] = [];
         snapshot.forEach((childSnapshot) => {
-          items.push({ id: childSnapshot.key, ...childSnapshot.val() });
+          items.push({idr:childSnapshot.key, ...childSnapshot.val()  });
         });
         resolve(items);
       },

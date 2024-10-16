@@ -4,7 +4,7 @@ import 'daisyui/dist/full.css';
 import './style.css';
 
 interface Item {
-  id: string;
+  idr: string;
   name: string;
   price: number;
   customQuantity?: 'yes' | 'no';
@@ -16,7 +16,7 @@ const ItemsPage: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState<Item | null>(null);
-  const [newItem, setNewItem] = useState<Item>({ id: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [] });
+  const [newItem, setNewItem] = useState<Item>({ idr: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '' });
   const [lastKey, setLastKey] = useState<string | null>(null);
   const [pageSize] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,6 +29,7 @@ const ItemsPage: React.FC = () => {
     setIsLoading(true);
     fetchItems(lastKey, pageSize)
       .then((data) => {
+        console.log('Items:', data);
         setItems(lastKey ? [...items, ...data] : data);
         if (data.length > 0) {
           setLastKey(data[data.length - 1].id);
@@ -45,7 +46,7 @@ const ItemsPage: React.FC = () => {
     addItem(newItem)
       .then(() => {
         setShowModal(false);
-        setNewItem({ id: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [] });
+        setNewItem({ idr: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '' });
         loadItems();
       })
       .catch((error) => {
@@ -55,11 +56,12 @@ const ItemsPage: React.FC = () => {
 
   const handleEditItem = () => {
     if (editItem) {
-      updateItem(editItem.id, newItem)
+      console.log('Edit Item:', newItem);
+      updateItem(editItem.idr, newItem)
         .then(() => {
           setShowModal(false);
           setEditItem(null);
-          setNewItem({ id: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [] });
+          setNewItem({ idr: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '' });
           loadItems();
         })
         .catch((error) => {
@@ -69,22 +71,25 @@ const ItemsPage: React.FC = () => {
   };
 
   const handleDeleteItem = (id: string) => {
-    deleteItem(id)
-      .then(() => {
-        loadItems();
-      })
-      .catch((error) => {
-        console.error('Error deleting item:', error);
-      });
+    if (window.confirm('Are you sure you want to delete this item?')) {
+      deleteItem(id)
+        .then(() => {
+          loadItems();
+        })
+        .catch((error) => {
+          console.error('Error deleting item:', error);
+        });
+    }
   };
 
   const openAddModal = () => {
-    setNewItem({ id: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [] });
+    setNewItem({ idr: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '' });
     setEditItem(null);
     setShowModal(true);
   };
 
   const openEditModal = (item: Item) => {
+    console.log('Edit Item change:', item);
     setEditItem(item);
     setNewItem(item);
     setShowModal(true);
@@ -128,13 +133,13 @@ const ItemsPage: React.FC = () => {
         </thead>
         <tbody>
           {items.map((item) => (
-            <tr key={item.id}>
+            <tr key={item.idr}>
               <td>{item.name}</td>
               <td>{item.price}</td>
               <td>{item.customQuantity}</td>
               <td>
                 <button onClick={() => openEditModal(item)} className="btn btn-sm btn-secondary">Edit</button>
-                <button onClick={() => handleDeleteItem(item.id)} className="btn btn-sm btn-danger ml-2">Delete</button>
+                <button onClick={() => handleDeleteItem(item.idr)} className="btn btn-sm btn-danger ml-2">Delete</button>
               </td>
             </tr>
           ))}
@@ -173,6 +178,13 @@ const ItemsPage: React.FC = () => {
               <option value="no">No</option>
               <option value="yes">Yes</option>
             </select>
+            <input
+              type="text"
+              placeholder="Unit"
+              value={newItem.unit}
+              onChange={(e) => handleInputChange(e, 'unit')}
+              className="input input-bordered w-full mt-2"
+            />
 
             {/* Dynamic input fields for predefined quantities */}
             <div className="mt-4">

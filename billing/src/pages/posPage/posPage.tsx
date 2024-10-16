@@ -18,7 +18,7 @@ const PosPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [drinks] = useState<Item[]>([
     { id: 0, name: "Chicken", price: 290, customQuantity: 'yes', predefinedQuantities: [0.25, 0.5, 0.75, 1], unit: 'kg' },
-    { id: 1, name: "Kaadai", price: 300, customQuantity: 'no' },
+    { id: 0, name: "Kaadai", price: 290, customQuantity: 'yes', predefinedQuantities: [0.25, 0.5, 0.75, 1], unit: 'kg' },
     { id: 2, name: "Janatha", price: 300, customQuantity: 'no' },
   ]);
 
@@ -149,6 +149,9 @@ const PosPage: React.FC = () => {
   );
   return (
     <div className="container mx-auto p-4">
+
+
+
     {counterLoading && (
   <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-50">
     <div className="flex flex-col items-center">
@@ -156,6 +159,7 @@ const PosPage: React.FC = () => {
       <p className="text-white text-lg">Loading...</p>
     </div>
   </div>)}
+
       {showModal && (
         <div className="modal modal-open">
           <div className="modal-box">
