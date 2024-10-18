@@ -4,7 +4,7 @@ import 'daisyui/dist/full.css';
 import './style.css';
 
 interface Item {
-  idr: string;
+  id: string;
   name: string;
   price: number;
   customQuantity?: 'yes' | 'no';
@@ -16,8 +16,8 @@ const ItemsPage: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState<Item | null>(null);
-  const [newItem, setNewItem] = useState<Item>({ idr: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '' });
-  const [lastKey, setLastKey] = useState<string | null>(null);
+  const [newItem, setNewItem] = useState<Item>({ id: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '' });
+  const [lastId, setLastId] = useState<string | null>(null);
   const [pageSize] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -26,13 +26,15 @@ const ItemsPage: React.FC = () => {
   }, []);
 
   const loadItems = () => {
+    setItems([]);
     setIsLoading(true);
-    fetchItems(lastKey, pageSize)
+    console.log("fresh load");
+    fetchItems(lastId, pageSize)
       .then((data) => {
         console.log('Items:', data);
-        setItems(lastKey ? [...items, ...data] : data);
+        setItems(lastId ? [...items, ...data] : data);
         if (data.length > 0) {
-          setLastKey(data[data.length - 1].id);
+          setLastId(data[data.length - 1].id);
         }
         setIsLoading(false);
       })
@@ -46,7 +48,7 @@ const ItemsPage: React.FC = () => {
     addItem(newItem)
       .then(() => {
         setShowModal(false);
-        setNewItem({ idr: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '' });
+        setNewItem({ id: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '' });
         loadItems();
       })
       .catch((error) => {
@@ -57,11 +59,11 @@ const ItemsPage: React.FC = () => {
   const handleEditItem = () => {
     if (editItem) {
       console.log('Edit Item:', newItem);
-      updateItem(editItem.idr, newItem)
+      updateItem(editItem.id, newItem)
         .then(() => {
           setShowModal(false);
           setEditItem(null);
-          setNewItem({ idr: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '' });
+          setNewItem({ id: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '' });
           loadItems();
         })
         .catch((error) => {
@@ -83,7 +85,7 @@ const ItemsPage: React.FC = () => {
   };
 
   const openAddModal = () => {
-    setNewItem({ idr: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '' });
+    setNewItem({ id: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '' });
     setEditItem(null);
     setShowModal(true);
   };
@@ -133,13 +135,13 @@ const ItemsPage: React.FC = () => {
         </thead>
         <tbody>
           {items.map((item) => (
-            <tr key={item.idr}>
+            <tr key={item.id}>
               <td>{item.name}</td>
               <td>{item.price}</td>
               <td>{item.customQuantity}</td>
               <td>
                 <button onClick={() => openEditModal(item)} className="btn btn-sm btn-secondary">Edit</button>
-                <button onClick={() => handleDeleteItem(item.idr)} className="btn btn-sm btn-danger ml-2">Delete</button>
+                <button onClick={() => handleDeleteItem(item.id)} className="btn btn-sm btn-danger ml-2">Delete</button>
               </td>
             </tr>
           ))}

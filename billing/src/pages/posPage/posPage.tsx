@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import 'daisyui/dist/full.css';
 import './css/style.css';
-import { getOrderCount, insertOrder } from '../../service/service'; // Import the insertOrder function
+import { fetchAllItems, getOrderCount, insertOrder } from '../../service/service'; // Import the insertOrder function
 
 interface Item {
-  id: number;
+  id: string;
   name: string;
   price: number;
   qty?: number;
@@ -16,11 +16,7 @@ interface Item {
 const PosPage: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [searchTerm, setSearchTerm] = useState('');
-  const [drinks] = useState<Item[]>([
-    { id: 0, name: "Chicken", price: 290, customQuantity: 'yes', predefinedQuantities: [0.25, 0.5, 0.75, 1], unit: 'kg' },
-    { id: 0, name: "Kaadai", price: 290, customQuantity: 'yes', predefinedQuantities: [0.25, 0.5, 0.75, 1], unit: 'kg' },
-    { id: 2, name: "Janatha", price: 300, customQuantity: 'no' },
-  ]);
+  const [drinks,setItems] = useState<Item[]>([]);
 
   const [order, setOrder] = useState<Item[]>([]);
   const [totOrders, setTotOrders] = useState(0);
@@ -135,12 +131,19 @@ const PosPage: React.FC = () => {
   
   ///loader and getting information from the services 
   useEffect(() => {
-    getOrderCount().then((count) => {
-      setTotOrders(count+1);
-    }).finally(()=>{
-      setCounterLoading(false);
+    getOrderCount()
+      .then((count) => {
+        setTotOrders(count + 1);
+      })
+      .finally(() => {
+        setCounterLoading(false);
+      });
+  
+    fetchAllItems().then((val) => {
+      console.log("sam valton", val);
+      setItems(val);
     });
-  })
+  }, []); // Pass an empty array to run the effect only once
   ///loader and getting information from the services 
 
 

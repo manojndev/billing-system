@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import logo from './logo.svg';
 // import './App.css';
-import { fetchWelcomeStart } from './redux/slices/initial/initialslice';
+import { fetchWelcomeStart } from './redux/slices/items/itemslice';
 import { useDispatch } from 'react-redux';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import AdminPage from './pages/adminpage/adminPage';
