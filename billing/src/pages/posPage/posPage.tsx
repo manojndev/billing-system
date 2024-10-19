@@ -14,7 +14,7 @@ interface Item {
 }
 
 const PosPage: React.FC = () => {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'garden'>('dark');
   const [searchTerm, setSearchTerm] = useState('');
   const [drinks,setItems] = useState<Item[]>([]);
 
@@ -246,7 +246,7 @@ const PosPage: React.FC = () => {
         <div className="flex-none">
           <button
             className="btn btn-sm btn-primary"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            onClick={() => setTheme(theme === 'dark' ? 'garden' : 'dark')}
           >
             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           </button>

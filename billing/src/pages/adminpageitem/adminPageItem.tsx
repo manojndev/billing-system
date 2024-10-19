@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { fetchItems, addItem, updateItem, deleteItem } from '../../service/service';
+import { fetchItems, addItem, updateItem, deleteItem, fetchAllItems } from '../../service/service';
 import 'daisyui/dist/full.css';
 import './style.css';
 
@@ -17,25 +17,23 @@ const ItemsPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState<Item | null>(null);
   const [newItem, setNewItem] = useState<Item>({ id: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '' });
-  const [lastId, setLastId] = useState<string | null>(null);
-  const [pageSize] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     loadItems();
   }, []);
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }, []);
+
   const loadItems = () => {
-    setItems([]);
     setIsLoading(true);
     console.log("fresh load");
-    fetchItems(lastId, pageSize)
+    fetchAllItems()
       .then((data) => {
         console.log('Items:', data);
-        setItems(lastId ? [...items, ...data] : data);
-        if (data.length > 0) {
-          setLastId(data[data.length - 1].id);
-        }
+        setItems(data);
         setIsLoading(false);
       })
       .catch((error) => {
@@ -148,11 +146,6 @@ const ItemsPage: React.FC = () => {
         </tbody>
       </table>
 
-      {/* Pagination */}
-      <button onClick={loadItems} className="btn btn-outline mt-5" disabled={isLoading}>
-        {isLoading ? 'Loading...' : 'Load More'}
-      </button>
-
       {/* Modal for Add/Edit */}
       {showModal && (
         <div className="modal modal-open">
@@ -189,21 +182,23 @@ const ItemsPage: React.FC = () => {
             />
 
             {/* Dynamic input fields for predefined quantities */}
-            <div className="mt-4">
-              <label className="font-bold">Predefined Quantities</label>
-              {newItem.predefinedQuantities?.map((quantity, index) => (
-                <div key={index} className="flex items-center mt-2">
-                  <input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => handlePredefinedQuantityChange(index, parseFloat(e.target.value))}
-                    className="input input-bordered w-full"
-                  />
-                  <button onClick={() => removePredefinedQuantity(index)} className="btn btn-sm btn-error ml-2">Remove</button>
-                </div>
-              ))}
-              <button onClick={addPredefinedQuantity} className="btn btn-sm btn-success mt-2">Add Quantity</button>
-            </div>
+            {newItem.customQuantity === 'yes' && (
+              <div className="mt-4">
+                <label className="font-bold">Predefined Quantities</label>
+                {newItem.predefinedQuantities?.map((quantity, index) => (
+                  <div key={index} className="flex items-center mt-2">
+                    <input
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => handlePredefinedQuantityChange(index, parseFloat(e.target.value))}
+                      className="input input-bordered w-full"
+                    />
+                    <button onClick={() => removePredefinedQuantity(index)} className="btn btn-sm btn-error ml-2">Remove</button>
+                  </div>
+                ))}
+                <button onClick={addPredefinedQuantity} className="btn btn-sm btn-success mt-2">Add Quantity</button>
+              </div>
+            )}
 
             <div className="modal-action">
               <button onClick={editItem ? handleEditItem : handleAddItem} className="btn btn-primary">

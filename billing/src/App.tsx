@@ -4,7 +4,8 @@ import logo from './logo.svg';
 import { fetchWelcomeStart } from './redux/slices/items/itemslice';
 import { useDispatch } from 'react-redux';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import AdminPage from './pages/adminpage/adminPage';
+import AdminPage from './pages/adminpageitem/adminPageItem';
+import  Admin from './pages/admin/admin';
 import PosPage from './pages/posPage/posPage';
 function App() {
   const dispatch = useDispatch();
@@ -18,7 +19,7 @@ function App() {
       <div>
         <Routes>
           <Route path="/" element={<PosPage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin" element={<Admin />} />
         </Routes>
       </div>
     </Router>
