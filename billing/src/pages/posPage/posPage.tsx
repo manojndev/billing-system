@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import 'daisyui/dist/full.css';
 import './css/style.css';
-import { fetchAllItems, getOrderCount, insertOrder } from '../../service/service'; // Import the insertOrder function
+import { fetchAllItems, getOrderCount, insertOrder } from '../../service/service';
 
 interface Item {
   id: string;
@@ -11,12 +11,13 @@ interface Item {
   customQuantity?: 'yes' | 'no';
   predefinedQuantities?: number[];
   unit?: string;
+  taxPercentage?: number;
 }
 
 const PosPage: React.FC = () => {
-  const [theme, setTheme] = useState<'dark' | 'garden'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'garden'>('garden');
   const [searchTerm, setSearchTerm] = useState('');
-  const [drinks,setItems] = useState<Item[]>([]);
+  const [drinks, setItems] = useState<Item[]>([]);
 
   const [order, setOrder] = useState<Item[]>([]);
   const [totOrders, setTotOrders] = useState(0);
@@ -95,22 +96,26 @@ const PosPage: React.FC = () => {
     return order.reduce((total, i) => total + (i.price * (i.qty || 1)), 0);
   };
 
+  const getTotalWithTax = () => {
+    return order.reduce((total, i) => {
+      const itemTotal = i.price * (i.qty || 1);
+      const taxAmount = i.taxPercentage ? (itemTotal * i.taxPercentage) / 100 : 0;
+      return total + itemTotal + taxAmount;
+    }, 0);
+  };
+
   const clearOrder = () => {
     setOrder([]);
   };
-
-
-
 
   const checkout = () => {
     const orderData = {
       date: getDate(),
       orderNumber: totOrders + 1,
       items: order,
-      totalAmount: getTotal().toFixed(2),
+      totalAmount: getTotalWithTax().toFixed(2),
     };
 
-    // Insert the order into Firebase
     insertOrder(orderData)
       .then(() => {
         alert(
@@ -128,8 +133,7 @@ const PosPage: React.FC = () => {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
-  
-  ///loader and getting information from the services 
+
   useEffect(() => {
     getOrderCount()
       .then((count) => {
@@ -138,36 +142,33 @@ const PosPage: React.FC = () => {
       .finally(() => {
         setCounterLoading(false);
       });
-  
+
     fetchAllItems().then((val) => {
       console.log("sam valton", val);
       setItems(val);
     });
-  }, []); // Pass an empty array to run the effect only once
-  ///loader and getting information from the services 
-
+  }, []);
 
   const filteredDrinks = drinks.filter((drink) =>
     drink.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
   return (
     <div className="container mx-auto p-4">
-
-
-
-    {counterLoading && (
-  <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-50">
-    <div className="flex flex-col items-center">
-      <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
-      <p className="text-white text-lg">Loading...</p>
-    </div>
-  </div>)}
+      {counterLoading && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-50">
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+            <p className="text-white text-lg">Loading...</p>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="modal modal-open">
           <div className="modal-box">
             <h3 className="font-bold text-lg">Enter Quantity or Price for {selectedItem?.name}</h3>
-            
+
             <div className="form-control">
               <label className="label cursor-pointer">
                 <span className="label-text">Quantity</span>
@@ -209,7 +210,6 @@ const PosPage: React.FC = () => {
               />
             )}
 
-            {/* Render predefined quantity buttons */}
             {selectedItem?.predefinedQuantities && (
               <div className="mt-4">
                 {selectedItem.predefinedQuantities.map((quantity) => (
@@ -218,7 +218,7 @@ const PosPage: React.FC = () => {
                     className="btn btn-outline mr-2"
                     onClick={() => {
                       addToOrder(selectedItem, quantity);
-                      setShowModal(false); // Close modal after adding to order
+                      setShowModal(false);
                     }}
                   >
                     {quantity} {selectedItem.unit}
@@ -269,9 +269,9 @@ const PosPage: React.FC = () => {
             <table className="table w-full bg-base-100 rounded-box">
               <thead>
                 <tr>
-                  <th>Qty</th>
                   <th>Item</th>
                   <th>Price</th>
+                  <th>Qty</th>
                   <th>Total</th>
                   <th>Actions</th>
                 </tr>
@@ -279,11 +279,11 @@ const PosPage: React.FC = () => {
               <tbody>
                 {order.map((item) => (
                   <tr key={item.id} className="hover">
+                    <td>{item.name}</td>
+                    <td className="text-center">₹{item.price.toFixed(2)}</td>
                     <td className="text-center">
                       <span className="badge badge-info">{item.qty?.toFixed(2)}</span>
                     </td>
-                    <td>{item.name}</td>
-                    <td className="text-center">₹{item.price.toFixed(2)}</td>
                     <td className="text-center">₹{(item.price * (item.qty || 1)).toFixed(2)}</td>
                     <td className="flex justify-center space-x-1">
                       <button
@@ -303,13 +303,13 @@ const PosPage: React.FC = () => {
           </div>
 
           <div className="text-xl font-bold text-right mt-4">
-            Total: ₹{getTotal().toFixed(2)}
+            Total: ₹{getTotalWithTax().toFixed(2)}
           </div>
           <div className="flex justify-between mt-4">
             <button className="btn btn-danger" onClick={clearOrder}>
               Clear Order
             </button>
-            <button className="btn btn-success" onClick={checkout}>
+            <button className="btn btn-success" onClick={checkout} disabled={order.length === 0}>
               Checkout
             </button>
           </div>
@@ -343,7 +343,6 @@ const PosPage: React.FC = () => {
         </div>
       </div>
     </div>
-    
   );
 };
 
