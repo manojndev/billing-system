@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import AdminPage from '../adminpageitem/adminPageItem';
-
+import OrderList from '../adminorderspage/ordersPage';
 const Admin: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState('home');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -20,7 +20,7 @@ const Admin: React.FC = () => {
         <div className="container mx-auto px-4 py-6">
           <nav className="flex justify-between items-center">
             <div className="flex space-x-4">
-              <button onClick={() => setSelectedTab('home')} className="text-gray-700 hover:text-gray-900">Home</button>
+              <button onClick={() => setSelectedTab('home')} className="text-gray-700 hover:text-gray-900">Dashboard</button>
               <button onClick={() => setSelectedTab('orders')} className="text-gray-700 hover:text-gray-900">Orders</button>
               <button onClick={() => setSelectedTab('items')} className="text-gray-700 hover:text-gray-900">Items</button>
             </div>
@@ -32,7 +32,7 @@ const Admin: React.FC = () => {
       </header>
       <main className="container mx-auto px-4 py-6">
         {selectedTab === 'home' && <div>Home Component</div>}
-        {selectedTab === 'orders' && <div>Orders Component</div>}
+        {selectedTab === 'orders' && <div><OrderList/></div>}
         {selectedTab === 'items' && <AdminPage />}
       </main>
     </div>

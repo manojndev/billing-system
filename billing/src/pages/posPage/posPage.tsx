@@ -259,7 +259,7 @@ const PosPage: React.FC = () => {
             <span>Order Summary</span>
             <span>Today: {getDate()}</span>
             <span>
-              Total Orders: <span className="badge badge-primary">{totOrders}</span>
+              Total Orders: <span className="badge badge-primary">{totOrders+1}</span>
             </span>
           </div>
 

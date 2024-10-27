@@ -151,3 +151,25 @@ export const deleteItem = (id: string) => {
   }
   return Promise.reject(new Error("Item ID is required"));
 };
+
+// Function to fetch all orders from the database
+export const fetchOrders = () => {
+  return new Promise((resolve, reject) => {
+    const ordersRef = ref(database, "orders");
+
+    get(ordersRef)
+      .then((snapshot) => {
+        if (snapshot.exists()) {
+          const orders = snapshot.val();
+          console.log("Fetched Orders:", orders);
+          resolve(orders);
+        } else {
+          resolve([]); // No orders found
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching orders:", error);
+        reject(error);
+      });
+  });
+};
