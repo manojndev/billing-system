@@ -2,26 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { fetchOrders } from '../../service/service';
 import './OrdersPage.css'; // Import the CSS file
 
-interface OrderItem {
-  customQuantity: string;
-  id: string;
-  name: string;
-  price: number;
-  qty: number;
-  taxPercentage: number;
-  unit: string;
-}
+import { OrderItem,Order,Orders } from './order.dto';
 
-interface Order {
-  date: string; // Format: DD/MM/YYYY
-  items: OrderItem[];
-  orderNumber: number;
-  totalAmount: string;
-}
-
-interface Orders {
-  [key: string]: Order;
-}
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState<Orders>({});
@@ -29,18 +11,42 @@ const OrdersPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [filterDate, setFilterDate] = useState<string>('');
+  const [lastOrderKey, setLastOrderKey] = useState<string | null>(null);
+  const [hasMoreOrders, setHasMoreOrders] = useState(true);
 
   useEffect(() => {
     fetchOrders()
-      .then((data) => {
-        setOrders(data as Orders);
+      .then((data: Orders) => {
+        setOrders(data);
         setLoading(false);
+        const keys = Object.keys(data);
+        if (keys.length > 0) {
+          setLastOrderKey(keys[keys.length - 1]);
+        }
+        setHasMoreOrders(keys.length === 40);
       })
       .catch((err: any) => {
         setError(err.message);
         setLoading(false);
       });
   }, []);
+
+  const loadMoreOrders = () => {
+    if (!hasMoreOrders) return;
+
+    fetchOrders(40, lastOrderKey)
+      .then((data: Orders) => {
+        setOrders((prevOrders) => ({ ...prevOrders, ...data }));
+        const keys = Object.keys(data);
+        if (keys.length > 0) {
+          setLastOrderKey(keys[keys.length - 1]);
+        }
+        setHasMoreOrders(keys.length === 40);
+      })
+      .catch((err: any) => {
+        setError(err.message);
+      });
+  };
 
   const handleRowClick = (orderId: string) => {
     setSelectedOrder(orders[orderId]);
@@ -106,6 +112,15 @@ const OrdersPage = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {hasMoreOrders && (
+        <button
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+          onClick={loadMoreOrders}
+        >
+          Load More
+        </button>
       )}
 
       {selectedOrder && (

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import AdminPage from '../adminpageitem/adminPageItem';
 import OrderList from '../adminorderspage/ordersPage';
+import Dashboard from '../adminDashboard/adminDashboard';
 const Admin: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState('home');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -31,7 +32,7 @@ const Admin: React.FC = () => {
         </div>
       </header>
       <main className="container mx-auto px-4 py-6">
-        {selectedTab === 'home' && <div>Home Component</div>}
+        {selectedTab === 'home' && <div><Dashboard/></div>}
         {selectedTab === 'orders' && <div><OrderList/></div>}
         {selectedTab === 'items' && <AdminPage />}
       </main>

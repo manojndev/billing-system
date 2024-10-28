@@ -1,6 +1,6 @@
 // Import Firebase dependencies
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, push, get, update, remove, query, limitToFirst, startAfter, child } from "firebase/database";
+import { getDatabase, ref, push, get, update, remove, query, limitToFirst, startAfter, orderByKey, child } from "firebase/database";
 import firebaseconfig from "../firebase/firebaseconfig";
 
 // Initialize Firebase app
@@ -152,19 +152,71 @@ export const deleteItem = (id: string) => {
   return Promise.reject(new Error("Item ID is required"));
 };
 
-// Function to fetch all orders from the database
-export const fetchOrders = () => {
-  return new Promise((resolve, reject) => {
-    const ordersRef = ref(database, "orders");
 
-    get(ordersRef)
+
+////fetch orders section
+
+
+
+interface OrderItem {
+  customQuantity: string;
+  id: string;
+  name: string;
+  price: number;
+  qty: number;
+  taxPercentage: number;
+  unit: string;
+}
+
+interface Order {
+  date: string;
+  items: OrderItem[];
+  orderNumber: number;
+  totalAmount: string;
+}
+
+interface Orders {
+  [key: string]: Order;
+}
+
+export const fetchOrders = (limit = 40, startAfterKey: string | null = null): Promise<Orders> => {
+  return new Promise((resolve, reject) => {
+    let ordersQuery = query(ref(database, "orders"), orderByKey(), limitToFirst(limit));
+    if (startAfterKey) {
+      ordersQuery = query(ref(database, "orders"), orderByKey(), startAfter(startAfterKey), limitToFirst(limit));
+    }
+
+    get(ordersQuery)
       .then((snapshot) => {
         if (snapshot.exists()) {
-          const orders = snapshot.val();
+          const orders = snapshot.val() as Orders;
           console.log("Fetched Orders:", orders);
           resolve(orders);
         } else {
-          resolve([]); // No orders found
+          resolve({}); // No orders found
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching orders:", error);
+        reject(error);
+      });
+  });
+};
+
+////fetch orders section
+
+export const fetchAllOrders = (): Promise<Orders> => {
+  return new Promise((resolve, reject) => {
+    const ordersQuery = query(ref(database, "orders"), orderByKey());
+
+    get(ordersQuery)
+      .then((snapshot) => {
+        if (snapshot.exists()) {
+          const orders = snapshot.val() as Orders;
+          console.log("Fetched Orders:", orders);
+          resolve(orders);
+        } else {
+          resolve({}); // No orders found
         }
       })
       .catch((error) => {
