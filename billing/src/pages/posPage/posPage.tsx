@@ -14,20 +14,22 @@ interface Item {
   taxPercentage?: number;
 }
 
+const ITEMS_PER_PAGE = 20;
+
 const PosPage: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'garden'>('garden');
   const [searchTerm, setSearchTerm] = useState('');
   const [drinks, setItems] = useState<Item[]>([]);
-
   const [order, setOrder] = useState<Item[]>([]);
   const [totOrders, setTotOrders] = useState(0);
   const [activeTab, setActiveTab] = useState<'items'>('items');
   const [showModal, setShowModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-  const [customQty, setCustomQty] = useState(1);
+  const [customQty, setCustomQty] = useState<string>('');
   const [inputMode, setInputMode] = useState<'quantity' | 'price'>('quantity');
-  const [customPrice, setCustomPrice] = useState(0);
+  const [customPrice, setCustomPrice] = useState<string>('');
   const [counterLoading, setCounterLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const getDate = () => {
     const today = new Date();
@@ -38,6 +40,8 @@ const PosPage: React.FC = () => {
   };
 
   const addToOrder = (item: Item, qty: number) => {
+    if (qty <= 0) return; // Prevent adding zero quantity
+
     const updatedOrder = [...order];
     const existingItem = updatedOrder.find((i) => i.id === item.id);
 
@@ -61,17 +65,19 @@ const PosPage: React.FC = () => {
 
   const handleConfirmQty = () => {
     if (selectedItem) {
-      let qty = customQty;
+      let qty = parseFloat(customQty);
       if (inputMode === 'price' && selectedItem.price > 0) {
-        qty = customPrice / selectedItem.price;
+        qty = parseFloat(customPrice) / selectedItem.price;
       }
 
-      addToOrder(selectedItem, qty);
-      setShowModal(false);
-      setCustomQty(1);
-      setCustomPrice(0);
-      setSelectedItem(null);
-      setInputMode('quantity');
+      if (qty > 0) {
+        addToOrder(selectedItem, qty);
+        setShowModal(false);
+        setCustomQty('');
+        setCustomPrice('');
+        setSelectedItem(null);
+        setInputMode('quantity');
+      }
     }
   };
 
@@ -153,6 +159,22 @@ const PosPage: React.FC = () => {
     drink.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const totalPages = Math.ceil(filteredDrinks.length / ITEMS_PER_PAGE);
+  const currentItems = filteredDrinks.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key === 'Enter' && showModal) {
+        handleConfirmQty();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => {
+      document.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [showModal, selectedItem, customQty, customPrice, inputMode]);
+
   return (
     <div className="container mx-auto p-4">
       {counterLoading && (
@@ -198,7 +220,7 @@ const PosPage: React.FC = () => {
                 min="1"
                 className="input input-bordered w-full mt-4"
                 value={customQty}
-                onChange={(e) => setCustomQty(Number(e.target.value))}
+                onChange={(e) => setCustomQty(e.target.value)}
               />
             ) : (
               <input
@@ -206,7 +228,7 @@ const PosPage: React.FC = () => {
                 min="1"
                 className="input input-bordered w-full mt-4"
                 value={customPrice}
-                onChange={(e) => setCustomPrice(Number(e.target.value))}
+                onChange={(e) => setCustomPrice(e.target.value)}
               />
             )}
 
@@ -325,20 +347,32 @@ const PosPage: React.FC = () => {
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-            {filteredDrinks.map((drink) => (
-              <div key={drink.id} className="card bg-base-100 shadow-xl">
-                <div className="card-body">
-                  <h2 className="card-title">{drink.name}</h2>
-                  <p>Price: ₹{drink.price.toFixed(2)}</p>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => handleItemClick(drink)}
-                  >
-                    {drink.customQuantity === 'yes' ? 'Custom Qty' : 'Add to Order'}
-                  </button>
-                </div>
-              </div>
+            {currentItems.map((drink) => (
+              <button
+                key={drink.id}
+                className="btn btn-outline"
+                onClick={() => handleItemClick(drink)}
+              >
+                {drink.name} - ₹{drink.price.toFixed(2)}
+              </button>
             ))}
+          </div>
+
+          <div className="flex justify-center mt-4">
+            <button
+              className="btn btn-sm btn-primary mr-2"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <button
+              className="btn btn-sm btn-primary"
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>
