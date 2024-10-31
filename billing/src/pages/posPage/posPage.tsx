@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import 'daisyui/dist/full.css';
 import './css/style.css';
 import { fetchAllItems, getOrderCount, insertOrder } from '../../service/service';
+import moment from 'moment-timezone';
 
 interface Item {
   id: string;
@@ -14,7 +15,7 @@ interface Item {
   taxPercentage?: number;
 }
 
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 25;
 
 const PosPage: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'garden'>('garden');
@@ -30,13 +31,15 @@ const PosPage: React.FC = () => {
   const [customPrice, setCustomPrice] = useState<string>('');
   const [counterLoading, setCounterLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [countdown, setCountdown] = useState(60); // Countdown timer in seconds
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
-  const getDate = () => {
-    const today = new Date();
-    const mm = today.getMonth() + 1;
-    const dd = today.getDate();
-    const yyyy = today.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
+  const getTimestamp = () => {
+    return new Date().toISOString();
+  };
+
+  const getFormattedTimestamp = () => {
+    return moment().tz('Asia/Kolkata').format('MMMM Do YYYY, h:mm:ss A');
   };
 
   const addToOrder = (item: Item, qty: number) => {
@@ -102,38 +105,37 @@ const PosPage: React.FC = () => {
     return order.reduce((total, i) => total + (i.price * (i.qty || 1)), 0);
   };
 
-  const getTotalWithTax = () => {
-    return order.reduce((total, i) => {
-      const itemTotal = i.price * (i.qty || 1);
-      const taxAmount = i.taxPercentage ? (itemTotal * i.taxPercentage) / 100 : 0;
-      return total + itemTotal + taxAmount;
-    }, 0);
-  };
-
   const clearOrder = () => {
     setOrder([]);
   };
 
   const checkout = () => {
+    setIsCheckoutLoading(true);
     const orderData = {
-      date: getDate(),
+      date: getTimestamp(),
       orderNumber: totOrders + 1,
       items: order,
-      totalAmount: getTotalWithTax().toFixed(2),
+      totalAmount: getTotal().toFixed(2),
     };
 
     insertOrder(orderData)
       .then(() => {
-        alert(
-          `${orderData.date} - Order Number: ₹${orderData.orderNumber}\n\nOrder amount: ₹${orderData.totalAmount}\n\nPayment received. Thanks.`
-        );
-        clearOrder();
+        // alert(
+        //   `Order Number: ₹${orderData.orderNumber}\n\nOrder amount: ₹${orderData.totalAmount}\n\nPayment received. Thanks.`
+        // );
         setTotOrders(totOrders + 1);
       })
       .catch((error) => {
         console.error("Failed to insert order:", error);
         alert("Failed to process order. Please try again.");
+      })
+      .finally(() => {
+        setIsCheckoutLoading(false);
       });
+  };
+
+  const startNewBill = () => {
+    clearOrder();
   };
 
   useEffect(() => {
@@ -153,6 +155,14 @@ const PosPage: React.FC = () => {
       console.log("sam valton", val);
       setItems(val);
     });
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCountdown((prevCountdown) => (prevCountdown > 0 ? prevCountdown - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const filteredDrinks = drinks.filter((drink) =>
@@ -278,10 +288,11 @@ const PosPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
         <div className="box">
           <div className="text-info flex justify-between">
-            <span>Order Summary</span>
-            <span>Today: {getDate()}</span>
-            <span>
+            <span className="font-bold text-black">Order Summary</span>
+            <span className="font-bold text-black">Today: {getFormattedTimestamp()}</span>
+            <span className="font-bold text-black">
               Total Orders: <span className="badge badge-primary">{totOrders+1}</span>
+
             </span>
           </div>
 
@@ -304,10 +315,18 @@ const PosPage: React.FC = () => {
                     <td>{item.name}</td>
                     <td className="text-center">₹{item.price.toFixed(2)}</td>
                     <td className="text-center">
-                      <span className="badge badge-info">{item.qty?.toFixed(2)}</span>
+                      <span className="badge badge-info">
+                        {item.qty?.toFixed(2)} {item.unit}
+                      </span>
                     </td>
                     <td className="text-center">₹{(item.price * (item.qty || 1)).toFixed(2)}</td>
                     <td className="flex justify-center space-x-1">
+                      <button
+                        className="btn btn-sm btn-success"
+                        onClick={() => addToOrder(item, 1)}
+                      >
+                        +
+                      </button>
                       <button
                         className="btn btn-sm btn-primary"
                         onClick={() => removeOneEntity(item)}
@@ -325,14 +344,18 @@ const PosPage: React.FC = () => {
           </div>
 
           <div className="text-xl font-bold text-right mt-4">
-            Total: ₹{getTotalWithTax().toFixed(2)}
+            Total: ₹{getTotal().toFixed(2)}
           </div>
           <div className="flex justify-between mt-4">
-            <button className="btn btn-danger" onClick={clearOrder}>
+            {/* <button className="btn btn-danger" onClick={clearOrder}>
               Clear Order
-            </button>
-            <button className="btn btn-success" onClick={checkout} disabled={order.length === 0}>
-              Checkout
+            </button> */}
+              <button className="btn btn-primary" onClick={startNewBill}>
+          <span className="text-xl">+</span> New Bill
+        </button>
+
+            <button className="btn btn-success" onClick={checkout} disabled={order.length === 0 || isCheckoutLoading}>
+              {isCheckoutLoading ? 'Processing...' : 'Checkout'}
             </button>
           </div>
         </div>
@@ -375,6 +398,10 @@ const PosPage: React.FC = () => {
             </button>
           </div>
         </div>
+      </div>
+
+      <div className="fixed bottom-4 right-4">
+
       </div>
     </div>
   );

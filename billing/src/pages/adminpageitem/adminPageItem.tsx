@@ -6,20 +6,22 @@ import './style.css';
 interface Item {
   id: string;
   name: string;
-  price: number;
+  price: number | '';
   customQuantity?: 'yes' | 'no';
   predefinedQuantities?: number[];
   unit?: string;
-  taxPercentage?: number;
+  taxPercentage?: number | '';
 }
 
 const ItemsPage: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState<Item | null>(null);
-  const [newItem, setNewItem] = useState<Item>({ id: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '', taxPercentage: 0 });
+  const [newItem, setNewItem] = useState<Item>({ id: '', name: '', price: '', customQuantity: 'no', predefinedQuantities: [], unit: 'unit', taxPercentage: '' });
   const [isLoading, setIsLoading] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [priceWithoutTax, setPriceWithoutTax] = useState<number | ''>('');
 
   useEffect(() => {
     loadItems();
@@ -28,6 +30,10 @@ const ItemsPage: React.FC = () => {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', 'light');
   }, []);
+
+  useEffect(() => {
+    calculatePriceWithoutTax();
+  }, [newItem.price, newItem.taxPercentage]);
 
   const loadItems = () => {
     setIsLoading(true);
@@ -45,47 +51,64 @@ const ItemsPage: React.FC = () => {
   };
 
   const handleAddItem = () => {
+    if (!newItem.name || newItem.price === '') {
+      alert('Name and Price are mandatory fields.');
+      return;
+    }
+    setIsActionLoading(true);
     addItem(newItem)
       .then(() => {
         setShowModal(false);
-        setNewItem({ id: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '', taxPercentage: 0 });
+        setNewItem({ id: '', name: '', price: '', customQuantity: 'no', predefinedQuantities: [], unit: 'unit', taxPercentage: '' });
         loadItems();
+        setIsActionLoading(false);
       })
       .catch((error) => {
         console.error('Error adding item:', error);
+        setIsActionLoading(false);
       });
   };
 
   const handleEditItem = () => {
+    if (editItem && (!newItem.name || newItem.price === '')) {
+      alert('Name and Price are mandatory fields.');
+      return;
+    }
     if (editItem) {
+      setIsActionLoading(true);
       console.log('Edit Item:', newItem);
       updateItem(editItem.id, newItem)
         .then(() => {
           setShowModal(false);
           setEditItem(null);
-          setNewItem({ id: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '', taxPercentage: 0 });
+          setNewItem({ id: '', name: '', price: '', customQuantity: 'no', predefinedQuantities: [], unit: 'unit', taxPercentage: '' });
           loadItems();
+          setIsActionLoading(false);
         })
         .catch((error) => {
           console.error('Error updating item:', error);
+          setIsActionLoading(false);
         });
     }
   };
 
   const handleDeleteItem = (id: string) => {
     if (window.confirm('Are you sure you want to delete this item?')) {
+      setIsActionLoading(true);
       deleteItem(id)
         .then(() => {
           loadItems();
+          setIsActionLoading(false);
         })
         .catch((error) => {
           console.error('Error deleting item:', error);
+          setIsActionLoading(false);
         });
     }
   };
 
   const openAddModal = () => {
-    setNewItem({ id: '', name: '', price: 0, customQuantity: 'no', predefinedQuantities: [], unit: '', taxPercentage: 0 });
+    setNewItem({ id: '', name: '', price: '', customQuantity: 'no', predefinedQuantities: [], unit: 'unit', taxPercentage: '' });
     setEditItem(null);
     setShowModal(true);
   };
@@ -98,7 +121,7 @@ const ItemsPage: React.FC = () => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>, field: keyof Item) => {
-    const value = field === 'price' || field === 'taxPercentage' ? parseFloat(e.target.value) : e.target.value;
+    const value = field === 'price' || field === 'taxPercentage' ? (e.target.value === '' ? '' : parseFloat(e.target.value)) : e.target.value;
     setNewItem({ ...newItem, [field]: value });
   };
 
@@ -121,6 +144,15 @@ const ItemsPage: React.FC = () => {
     setNewItem({ ...newItem, predefinedQuantities: updatedQuantities });
   };
 
+  const calculatePriceWithoutTax = () => {
+    if (newItem.price !== '' && newItem.taxPercentage !== '') {
+      const priceWithoutTax = newItem.price / (1 + (newItem.taxPercentage || 0) / 100);
+      setPriceWithoutTax(priceWithoutTax);
+    } else {
+      setPriceWithoutTax('');
+    }
+  };
+
   const filteredItems = items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
@@ -132,7 +164,7 @@ const ItemsPage: React.FC = () => {
         onChange={(e) => setSearchQuery(e.target.value)}
         className="input input-bordered w-full mb-4"
       />
-      <button onClick={openAddModal} className="btn btn-primary mb-4">Add Item</button>
+      <button onClick={openAddModal} className={`btn btn-primary mb-4 ${isActionLoading ? 'btn-loading' : ''}`}>Add Item</button>
       <table className="table table-zebra w-full">
         <thead>
           <tr>
@@ -143,17 +175,25 @@ const ItemsPage: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {filteredItems.map((item) => (
-            <tr key={item.id}>
-              <td>{item.name}</td>
-              <td>{item.price}</td>
-              <td>{item.customQuantity}</td>
-              <td>
-                <button onClick={() => openEditModal(item)} className="btn btn-sm btn-secondary">Edit</button>
-                <button onClick={() => handleDeleteItem(item.id)} className="btn btn-sm btn-danger ml-2">Delete</button>
+          {isLoading ? (
+            <tr>
+              <td colSpan={4} className="text-center">
+                <span className="loading loading-spinner loading-lg"></span>
               </td>
             </tr>
-          ))}
+          ) : (
+            filteredItems.map((item) => (
+              <tr key={item.id}>
+                <td>{item.name}</td>
+                <td>{item.price}</td>
+                <td>{item.customQuantity}</td>
+                <td>
+                  <button onClick={() => openEditModal(item)} className={`btn btn-sm btn-secondary ${isActionLoading ? 'btn-loading' : ''}`}>Edit</button>
+                  <button onClick={() => handleDeleteItem(item.id)} className={`btn btn-sm btn-danger ml-2 ${isActionLoading ? 'btn-loading' : ''}`}>Delete</button>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
 
@@ -188,13 +228,15 @@ const ItemsPage: React.FC = () => {
               <option value="yes">Yes</option>
             </select>
             <label className="block mt-2">Unit</label>
-            <input
-              type="text"
-              placeholder="Unit"
+            <select
               value={newItem.unit}
               onChange={(e) => handleInputChange(e, 'unit')}
-              className="input input-bordered w-full mt-2"
-            />
+              className="select select-bordered w-full mt-2"
+            >
+              <option value="unit">Unit</option>
+              <option value="kg">Kg</option>
+              <option value="g">g</option>
+            </select>
             <label className="block mt-2">Tax Percentage</label>
             <input
               type="number"
@@ -203,6 +245,11 @@ const ItemsPage: React.FC = () => {
               onChange={(e) => handleInputChange(e, 'taxPercentage')}
               className="input input-bordered w-full mt-2"
             />
+            {priceWithoutTax !== '' && (
+              <div className="mt-2">
+                <label className="block">Price Without Tax: {priceWithoutTax.toFixed(2)}</label>
+              </div>
+            )}
 
             {/* Dynamic input fields for predefined quantities */}
             {newItem.customQuantity === 'yes' && (
@@ -224,8 +271,8 @@ const ItemsPage: React.FC = () => {
             )}
 
             <div className="modal-action">
-              <button onClick={editItem ? handleEditItem : handleAddItem} className="btn btn-primary">
-                {editItem ? 'Update' : 'Add'}
+              <button onClick={editItem ? handleEditItem : handleAddItem} className={`btn btn-primary ${isActionLoading ? 'btn-loading' : ''}`}>
+                {isActionLoading ? <span className="spinner"></span> : (editItem ? 'Update' : 'Add')}
               </button>
               <button onClick={() => setShowModal(false)} className="btn">Cancel</button>
             </div>

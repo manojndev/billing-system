@@ -31,6 +31,10 @@ const OrdersPage = () => {
       });
   }, []);
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', "garden");
+  }, []);
+
   const loadMoreOrders = () => {
     if (!hasMoreOrders) return;
 

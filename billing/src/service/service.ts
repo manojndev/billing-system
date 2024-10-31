@@ -1,21 +1,21 @@
-// Import Firebase dependencies
+// Import Firestore dependencies
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, push, get, update, remove, query, limitToFirst, startAfter, orderByKey, child } from "firebase/database";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, query, limit, startAfter, orderBy, getDocs } from "firebase/firestore";
 import firebaseconfig from "../firebase/firebaseconfig";
-
+import {OrderItem , Order, Orders} from "../pages/adminorderspage/order.dto";
 // Initialize Firebase app
-const database = getDatabase(firebaseconfig);
+const db = getFirestore(firebaseconfig);
 
 // Function to fetch data from a specific path in the database
 export const fetchData = () => {
   return new Promise((resolve, reject) => {
-    const dataRef = ref(database, "/"); // Replace with your actual database path
+    const dataRef = doc(db, "/"); // Replace with your actual database path
 
     // Fetch data once without listening for changes
-    get(dataRef)
+    getDoc(dataRef)
       .then((snapshot) => {
         if (snapshot.exists()) {
-          const data = snapshot.val();
+          const data = snapshot.data();
           console.log("Fetched Data:", data);
           resolve(data); // Resolve the promise with the fetched data
         } else {
@@ -29,11 +29,11 @@ export const fetchData = () => {
   });
 };
 
-// Function to insert an order into the Firebase Realtime Database
+// Function to insert an order into Firestore
 export const insertOrder = (orderData: any) => {
   return new Promise((resolve, reject) => {
-    const ordersRef = ref(database, "orders");
-    push(ordersRef, orderData)
+    const ordersRef = collection(db, "orders");
+    setDoc(doc(ordersRef), orderData)
       .then(() => {
         console.log("Order inserted successfully:", orderData);
         resolve(orderData); // Resolve the promise if the insertion is successful
@@ -45,21 +45,17 @@ export const insertOrder = (orderData: any) => {
   });
 };
 
-// Function to retrieve the total number of orders from Firebase
+// Function to retrieve the total number of orders from Firestore
 export const getOrderCount = () => {
   return new Promise<number>((resolve, reject) => {
-    const ordersRef = ref(database, "orders");
+    const ordersRef = collection(db, "orders");
 
     // Fetch order count once without listening for changes
-    get(ordersRef)
+    getDocs(ordersRef)
       .then((snapshot) => {
-        if (snapshot.exists()) {
-          const orderCount = snapshot.size;
-          console.log("Total Orders Count:", orderCount);
-          resolve(orderCount);
-        } else {
-          resolve(0); // No orders found, resolve with 0
-        }
+        const orderCount = snapshot.size;
+        console.log("Total Orders Count:", orderCount);
+        resolve(orderCount);
       })
       .catch((error) => {
         console.error("Error fetching order count:", error);
@@ -71,27 +67,24 @@ export const getOrderCount = () => {
 // Function to fetch items with pagination
 export const fetchItems = (lastKey: string | null, pageSize: number) => {
   return new Promise<any[]>((resolve, reject) => {
-    let itemsQuery = query(ref(database, "items"), limitToFirst(pageSize));
+    let itemsQuery = query(collection(db, "items"), limit(pageSize));
 
     if (lastKey) {
-      itemsQuery = query(ref(database, "items"), startAfter(lastKey), limitToFirst(pageSize));
+      itemsQuery = query(collection(db, "items"), orderBy("id"), startAfter(lastKey), limit(pageSize));
     }
 
     // Fetch items once without listening for changes
-    get(itemsQuery)
+    getDocs(itemsQuery)
       .then((snapshot) => {
-        if (!snapshot.exists()) {
+        if (snapshot.empty) {
           resolve([]); // No items found
           return;
         }
 
         const items: any[] = [];
-        snapshot.forEach((childSnapshot) => {
-          const key = childSnapshot.key;
-          if (key) {
-            const item = { id: String(key), ...childSnapshot.val() };
-            items.push(item);
-          }
+        snapshot.forEach((doc) => {
+          const item = { id: doc.id, ...doc.data() };
+          items.push(item);
         });
 
         console.log("Fetched items:", items); // Improved logging for debugging
@@ -107,14 +100,14 @@ export const fetchItems = (lastKey: string | null, pageSize: number) => {
 // Function to fetch all items
 export const fetchAllItems = () => {
   return new Promise<any[]>((resolve, reject) => {
-    const itemsRef = ref(database, "items");
+    const itemsRef = collection(db, "items");
 
-    get(itemsRef)
+    getDocs(itemsRef)
       .then((snapshot) => {
-        if (snapshot.exists()) {
+        if (!snapshot.empty) {
           const items: any[] = [];
-          snapshot.forEach((childSnapshot) => {
-            items.push({ id: String(childSnapshot.key), ...childSnapshot.val() });
+          snapshot.forEach((doc) => {
+            items.push({ id: doc.id, ...doc.data() });
           });
           resolve(items);
         } else {
@@ -131,14 +124,14 @@ export const fetchAllItems = () => {
 // Add a new item
 export const addItem = (itemData: any) => {
   const { id, ...dataWithoutId } = itemData;
-  return push(ref(database, "items"), dataWithoutId);
+  return setDoc(doc(collection(db, "items")), dataWithoutId);
 };
 
 // Update an existing item
 export const updateItem = (id: string, itemData: any) => {
   if (id) {
     const { id: itemId, ...dataWithoutId } = itemData;
-    return update(ref(database, `items/${id}`), dataWithoutId);
+    return updateDoc(doc(db, `items/${id}`), dataWithoutId);
   }
   // Throw error if id is not provided
   return Promise.reject(new Error("Item ID is required"));
@@ -147,49 +140,35 @@ export const updateItem = (id: string, itemData: any) => {
 // Function to delete an item
 export const deleteItem = (id: string) => {
   if (id) {
-    return remove(ref(database, `items/${id}`));
+    return deleteDoc(doc(db, `items/${id}`));
   }
   return Promise.reject(new Error("Item ID is required"));
 };
 
-
-
-////fetch orders section
+// Fetch orders section
 
 
 
-interface OrderItem {
-  customQuantity: string;
-  id: string;
-  name: string;
-  price: number;
-  qty: number;
-  taxPercentage: number;
-  unit: string;
-}
+export const fetchOrders = (limitValue = 40, startAfterKey: string | null = null): Promise<Orders> => {
 
-interface Order {
-  date: string;
-  items: OrderItem[];
-  orderNumber: number;
-  totalAmount: string;
-}
-
-interface Orders {
-  [key: string]: Order;
-}
-
-export const fetchOrders = (limit = 40, startAfterKey: string | null = null): Promise<Orders> => {
+  console.log("Fetching orders with limit:", limitValue, "startAfterKey:", startAfterKey);
   return new Promise((resolve, reject) => {
-    let ordersQuery = query(ref(database, "orders"), orderByKey(), limitToFirst(limit));
+    let ordersQuery = query(collection(db, "orders"), limit(limitValue));
     if (startAfterKey) {
-      ordersQuery = query(ref(database, "orders"), orderByKey(), startAfter(startAfterKey), limitToFirst(limit));
+      ordersQuery = query(collection(db, "orders"), startAfter(startAfterKey), limit(limitValue));
     }
 
-    get(ordersQuery)
+    getDocs(ordersQuery)
       .then((snapshot) => {
-        if (snapshot.exists()) {
-          const orders = snapshot.val() as Orders;
+        console.log("snapshot:", snapshot);
+
+        if (!snapshot.empty) {
+          const orders: Orders = {};
+          snapshot.forEach((doc) => {
+            console.log("order:", doc);
+
+            orders[doc.id] = doc.data() as Order;
+          });
           console.log("Fetched Orders:", orders);
           resolve(orders);
         } else {
@@ -203,16 +182,21 @@ export const fetchOrders = (limit = 40, startAfterKey: string | null = null): Pr
   });
 };
 
-////fetch orders section
 
+
+// Fetch all orders
 export const fetchAllOrders = (): Promise<Orders> => {
   return new Promise((resolve, reject) => {
-    const ordersQuery = query(ref(database, "orders"), orderByKey());
+    const ordersQuery = query(collection(db, "orders"));
 
-    get(ordersQuery)
+    getDocs(ordersQuery)
       .then((snapshot) => {
-        if (snapshot.exists()) {
-          const orders = snapshot.val() as Orders;
+        console.log("snapshot:", snapshot.empty);
+        if (!snapshot.empty) {
+          const orders: Orders = {};
+          snapshot.forEach((doc) => {
+            orders[doc.id] = doc.data() as Order;
+          });
           console.log("Fetched Orders:", orders);
           resolve(orders);
         } else {
