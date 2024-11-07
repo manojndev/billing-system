@@ -1,4 +1,5 @@
 from escpos.printer import Usb
+from PIL import Image
 
 # Replace with your printer's vendor and product IDs
 USB_VENDOR_ID = 0x2aaf  # Change to your printer's USB Vendor ID
@@ -7,6 +8,15 @@ USB_PRODUCT_ID = 0x6004  # Change to your printer's USB Product ID
 try:
     # Initialize the printer
     printer = Usb(USB_VENDOR_ID, USB_PRODUCT_ID)
+
+    # Load and resize the image
+    image_path = 'outputsecnd.png'
+    image = Image.open(image_path)
+    image = image.resize((200, int(image.height * (200 / image.width))), Image.LANCZOS)
+    image.save('resized_image.png')
+
+    # Print the resized image
+    printer.image('resized_image.png')
 
     # Print header
     printer.set(align='center', bold=True)

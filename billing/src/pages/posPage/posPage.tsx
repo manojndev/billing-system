@@ -102,7 +102,11 @@ const PosPage: React.FC = () => {
   };
 
   const getTotal = () => {
-    return order.reduce((total, i) => total + (i.price * (i.qty || 1)), 0);
+    return order.reduce((total, i) => {
+      const itemTotal = i.price * (i.qty || 1);
+      const taxAmount = itemTotal * ((i.taxPercentage || 0) / 100);
+      return total + itemTotal + taxAmount;
+    }, 0);
   };
 
   const clearOrder = () => {
@@ -120,9 +124,6 @@ const PosPage: React.FC = () => {
 
     insertOrder(orderData)
       .then(() => {
-        // alert(
-        //   `Order Number: ₹${orderData.orderNumber}\n\nOrder amount: ₹${orderData.totalAmount}\n\nPayment received. Thanks.`
-        // );
         setTotOrders(totOrders + 1);
       })
       .catch((error) => {
@@ -292,7 +293,6 @@ const PosPage: React.FC = () => {
             <span className="font-bold text-black">Today: {getFormattedTimestamp()}</span>
             <span className="font-bold text-black">
               Total Orders: <span className="badge badge-primary">{totOrders+1}</span>
-
             </span>
           </div>
 
@@ -305,6 +305,7 @@ const PosPage: React.FC = () => {
                   <th>Item</th>
                   <th>Price</th>
                   <th>Qty</th>
+                  <th>Tax %</th>
                   <th>Total</th>
                   <th>Actions</th>
                 </tr>
@@ -319,7 +320,8 @@ const PosPage: React.FC = () => {
                         {item.qty?.toFixed(2)} {item.unit}
                       </span>
                     </td>
-                    <td className="text-center">₹{(item.price * (item.qty || 1)).toFixed(2)}</td>
+                    <td className="text-center">{item.taxPercentage || 0}%</td>
+                    <td className="text-center">₹{(item.price * (item.qty || 1) * (1 + (item.taxPercentage || 0) / 100)).toFixed(2)}</td>
                     <td className="flex justify-center space-x-1">
                       <button
                         className="btn btn-sm btn-success"
@@ -347,12 +349,9 @@ const PosPage: React.FC = () => {
             Total: ₹{getTotal().toFixed(2)}
           </div>
           <div className="flex justify-between mt-4">
-            {/* <button className="btn btn-danger" onClick={clearOrder}>
-              Clear Order
-            </button> */}
-              <button className="btn btn-primary" onClick={startNewBill}>
-          <span className="text-xl">+</span> New Bill
-        </button>
+            <button className="btn btn-primary" onClick={startNewBill}>
+              <span className="text-xl">+</span> New Bill
+            </button>
 
             <button className="btn btn-success" onClick={checkout} disabled={order.length === 0 || isCheckoutLoading}>
               {isCheckoutLoading ? 'Processing...' : 'Checkout'}
