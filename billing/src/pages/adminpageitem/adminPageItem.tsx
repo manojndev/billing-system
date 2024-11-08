@@ -122,7 +122,14 @@ const ItemsPage: React.FC = () => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>, field: keyof Item) => {
-    const value = field === 'priceExcludingTax' || field === 'taxPercentage' ? (e.target.value === '' ? '' : parseFloat(e.target.value)) : e.target.value;
+    let value: any = e.target.value;
+    if (field === 'priceExcludingTax' || field === 'taxPercentage') {
+      value = value === '' ? '' : parseFloat(value);
+      if (field === 'taxPercentage' && (value < 0 || value > 99)) {
+        alert('Tax Percentage must be between 0 and 99.');
+        return;
+      }
+    }
     setNewItem({ ...newItem, [field]: value });
   };
 
@@ -151,7 +158,7 @@ const ItemsPage: React.FC = () => {
       return Math.round(priceIncludingTax * 100) / 100;
     }
     return '';
-};
+  };
 
   const filteredItems = items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -248,6 +255,8 @@ const ItemsPage: React.FC = () => {
               value={newItem.taxPercentage}
               onChange={(e) => handleInputChange(e, 'taxPercentage')}
               className="input input-bordered w-full mt-2"
+              min="0"
+              max="99"
             />
             {priceIncludingTax !== '' && (
               <div className="mt-2">

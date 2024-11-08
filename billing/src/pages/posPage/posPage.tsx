@@ -7,7 +7,7 @@ import moment from 'moment-timezone';
 interface Item {
   id: string;
   name: string;
-  price: number;
+  priceExcludingTax?: number; // Change price to priceExcludingTax
   qty?: number;
   customQuantity?: 'yes' | 'no';
   predefinedQuantities?: number[];
@@ -20,7 +20,7 @@ const ITEMS_PER_PAGE = 25;
 const PosPage: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'garden'>('garden');
   const [searchTerm, setSearchTerm] = useState('');
-  const [drinks, setItems] = useState<Item[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
   const [order, setOrder] = useState<Item[]>([]);
   const [totOrders, setTotOrders] = useState(0);
   const [activeTab, setActiveTab] = useState<'items'>('items');
@@ -69,8 +69,8 @@ const PosPage: React.FC = () => {
   const handleConfirmQty = () => {
     if (selectedItem) {
       let qty = parseFloat(customQty);
-      if (inputMode === 'price' && selectedItem.price > 0) {
-        qty = parseFloat(customPrice) / selectedItem.price;
+      if (inputMode === 'price' && selectedItem.priceExcludingTax && selectedItem.priceExcludingTax > 0) {
+        qty = parseFloat(customPrice) / selectedItem.priceExcludingTax;
       }
 
       if (qty > 0) {
@@ -103,7 +103,7 @@ const PosPage: React.FC = () => {
 
   const getTotal = () => {
     return order.reduce((total, i) => {
-      const itemTotal = i.price * (i.qty || 1);
+      const itemTotal = (i.priceExcludingTax || 0) * (i.qty || 1);
       const taxAmount = itemTotal * ((i.taxPercentage || 0) / 100);
       return total + itemTotal + taxAmount;
     }, 0);
@@ -166,12 +166,12 @@ const PosPage: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const filteredDrinks = drinks.filter((drink) =>
-    drink.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredItems = items.filter((item) =>
+    item.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalPages = Math.ceil(filteredDrinks.length / ITEMS_PER_PAGE);
-  const currentItems = filteredDrinks.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+  const currentItems = filteredItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -314,14 +314,14 @@ const PosPage: React.FC = () => {
                 {order.map((item) => (
                   <tr key={item.id} className="hover">
                     <td>{item.name}</td>
-                    <td className="text-center">₹{item.price.toFixed(2)}</td>
+                    <td className="text-center">₹{item.priceExcludingTax?.toFixed(2) || 'N/A'}</td>
                     <td className="text-center">
                       <span className="badge badge-info">
                         {item.qty?.toFixed(2)} {item.unit}
                       </span>
                     </td>
                     <td className="text-center">{item.taxPercentage || 0}%</td>
-                    <td className="text-center">₹{(item.price * (item.qty || 1) * (1 + (item.taxPercentage || 0) / 100)).toFixed(2)}</td>
+                    <td className="text-center">₹{((item.priceExcludingTax || 0) * (item.qty || 1) * (1 + (item.taxPercentage || 0) / 100)).toFixed(2)}</td>
                     <td className="flex justify-center space-x-1">
                       <button
                         className="btn btn-sm btn-success"
@@ -354,7 +354,7 @@ const PosPage: React.FC = () => {
             </button>
 
             <button className="btn btn-success" onClick={checkout} disabled={order.length === 0 || isCheckoutLoading}>
-              {isCheckoutLoading ? 'Processing...' : 'Checkout'}
+              {isCheckoutLoading ? 'Processing...' : 'Print'}
             </button>
           </div>
         </div>
@@ -369,13 +369,13 @@ const PosPage: React.FC = () => {
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-            {currentItems.map((drink) => (
+            {currentItems.map((item) => (
               <button
-                key={drink.id}
+                key={item.id}
                 className="btn btn-outline"
-                onClick={() => handleItemClick(drink)}
+                onClick={() => handleItemClick(item)}
               >
-                {drink.name} - ₹{drink.price.toFixed(2)}
+                {item.name} - ₹{item.priceExcludingTax?.toFixed(2) || 'N/A'}
               </button>
             ))}
           </div>
