@@ -30,6 +30,8 @@ interface PrintJob {
 }
 
 const ITEMS_PER_PAGE = 25;
+const BUTTON_TEXT_LIMIT = 20;
+const TABLE_TEXT_LIMIT = 15;
 
 const PosPage: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'garden'>('garden');
@@ -217,6 +219,10 @@ const PosPage: React.FC = () => {
     };
   }, [showModal, selectedItem, customQty, customPrice, inputMode]);
 
+  const truncateText = (text: string, limit: number) => {
+    return text.length > limit ? text.substring(0, limit) + '...' : text;
+  };
+
   return (
     <div className="container mx-auto p-4">
       {counterLoading && (
@@ -327,10 +333,10 @@ const PosPage: React.FC = () => {
             </span>
           </div>
 
-          <div className="overflow-auto max-h-64 mt-4">
+          <div className="table-container overflow-auto mt-4">
             {order.length === 0 && <div className="text-warning">Nothing ordered yet!</div>}
 
-            <table className="table w-full bg-base-100 rounded-box">
+            <table className="table w-full bg-base-100 rounded-box table-responsive">
               <thead>
                 <tr>
                   <th>Item</th>
@@ -344,7 +350,7 @@ const PosPage: React.FC = () => {
               <tbody>
                 {order.map((item) => (
                   <tr key={item.id} className="hover">
-                    <td>{item.name}</td>
+                    <td className="truncate max-w-xs break-words">{truncateText(item.name, TABLE_TEXT_LIMIT)}</td>
                     <td className="text-center">₹{item.priceExcludingTax?.toFixed(2) || 'N/A'}</td>
                     <td className="text-center">
                       <span className="badge badge-info">
@@ -406,7 +412,7 @@ const PosPage: React.FC = () => {
                 className="btn btn-outline"
                 onClick={() => handleItemClick(item)}
               >
-                {item.name} - ₹{item.priceExcludingTax?.toFixed(2) || 'N/A'}
+                {truncateText(item.name, BUTTON_TEXT_LIMIT)} - ₹{item.priceExcludingTax?.toFixed(2) || 'N/A'}
               </button>
             ))}
           </div>

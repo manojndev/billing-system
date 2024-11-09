@@ -4,4 +4,9 @@
   }
 
 
-  
+  /* style.css */
+.table-container {
+  min-height: 300px; /* Adjust this value as needed */
+  max-height: 400px; /* Adjust this value as needed */
+  overflow-y: auto;
+}
