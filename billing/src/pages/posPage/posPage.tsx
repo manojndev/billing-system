@@ -3,6 +3,7 @@ import 'daisyui/dist/full.css';
 import './css/style.css';
 import { fetchAllItems, getOrderCount, insertOrder } from '../../service/service';
 import moment from 'moment-timezone';
+import { sendPrintJob } from '../../service/printService'; // Import the sendPrintJob function
 
 interface Item {
   id: string;
@@ -13,6 +14,19 @@ interface Item {
   predefinedQuantities?: number[];
   unit?: string;
   taxPercentage?: number;
+}
+
+interface PrintItem {
+  name: string;
+  qty: number;
+  price: number;
+  gst: number;
+  amount_with_gst: number;
+}
+
+interface PrintJob {
+  items: PrintItem[];
+  total: number;
 }
 
 const ITEMS_PER_PAGE = 25;
@@ -125,6 +139,23 @@ const PosPage: React.FC = () => {
     insertOrder(orderData)
       .then(() => {
         setTotOrders(totOrders + 1);
+        // Map order items to print items
+        const printItems: PrintItem[] = order.map((item) => ({
+          name: item.name,
+          qty: item.qty || 0,
+          price: item.priceExcludingTax || 0,
+          gst: item.taxPercentage || 0,
+          amount_with_gst: ((item.priceExcludingTax || 0) * (item.qty || 1) * (1 + (item.taxPercentage || 0) / 100)),
+        }));
+
+        // Create print job
+        const printJob: PrintJob = {
+          items: printItems,
+          total: parseFloat(orderData.totalAmount),
+        };
+
+        // Send print job
+        return sendPrintJob(printJob);
       })
       .catch((error) => {
         console.error("Failed to insert order:", error);

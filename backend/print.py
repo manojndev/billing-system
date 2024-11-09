@@ -1,19 +1,30 @@
-# main.py
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from escpos.printer import Usb
 from PIL import Image
 
 app = FastAPI()
 
+# Allow all origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
 class Item(BaseModel):
     name: str
     qty: int
     price: float
     gst: int
+    amount_with_gst: float  # Add amount_with_gst field
 
 class PrintJob(BaseModel):
     items: list[Item]
+    total: float  # Add total field
 
 # Replace with your printer's vendor and product IDs
 USB_VENDOR_ID = 0x2aaf  # Change to your printer's USB Vendor ID
@@ -46,23 +57,16 @@ async def print_receipt(print_job: PrintJob):
         printer.text("{:<16} {:>4} {:>7} {:>5} {:>8}\n".format("Item", "Qty", "Price", "GST%", "Amount"))
         printer.text("--------------------------------------------\n")
 
-        total = 0
-
-        # Print each item with calculations for GST and final amount
+        # Print each item
         for item in print_job.items:
-            amount_without_gst = item.qty * item.price
-            gst_amount = amount_without_gst * (item.gst / 100)
-            amount_with_gst = amount_without_gst + gst_amount
-            total += amount_with_gst
-
             # Handle long item names
             item_name = item.name
-            if len(item_name) > 16:
+            if (len(item_name) > 16):
                 words = item_name.split()
                 item_name = ""
                 line = ""
                 for word in words:
-                    if len(line) + len(word) + 1 > 16:
+                    if (len(line) + len(word) + 1 > 16):
                         item_name += line.strip() + "\n"
                         line = word + " "
                     else:
@@ -72,10 +76,10 @@ async def print_receipt(print_job: PrintJob):
             # Print item row
             lines = item_name.split("\n")
             for i, line in enumerate(lines):
-                if i == len(lines) - 1:
+                if (i == len(lines) - 1):
                     printer.set(align='left', bold=False)
                     printer.text("{:<16} {:>4} {:>7.2f} {:>5}% {:>8.2f}\n".format(
-                        line, item.qty, item.price, item.gst, amount_with_gst
+                        line, item.qty, item.price, item.gst, item.amount_with_gst
                     ))
                 else:
                     printer.set(align='left', bold=False)
@@ -85,7 +89,7 @@ async def print_receipt(print_job: PrintJob):
 
         # Print total
         printer.set(align='right', bold=True)
-        printer.text("Total:         {:.2f}\n".format(total))
+        printer.text("Total:         {:.2f}\n".format(print_job.total))
 
         # Footer
         printer.set(align='center', bold=False)

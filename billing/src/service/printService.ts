@@ -6,10 +6,12 @@ interface Item {
     qty: number;
     price: number;
     gst: number;
+    amount_with_gst: number;  // Add amount_with_gst field
 }
 
 interface PrintJob {
     items: Item[];
+    total: number;  // Add total field
 }
 
 export async function sendPrintJob(printJob: PrintJob): Promise<void> {
