@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { fetchOrders } from '../../service/service';
 import './OrdersPage.css'; // Import the CSS file
 
-import { OrderItem,Order,Orders } from './order.dto';
-
+import { OrderItem, Order, Orders } from './order.dto';
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState<Orders>({});
@@ -70,7 +69,9 @@ const OrdersPage = () => {
   };
 
   const filteredOrders = Object.keys(orders).filter((orderId) => {
-    const orderDate = parseDate(orders[orderId].date);
+    const order = orders[orderId];
+    if (!order.date) return false;
+    const orderDate = parseDate(order.date);
     const filterDateObj = filterDate ? parseDate(filterDate) : null;
     return !filterDate || orderDate.toDateString() === filterDateObj?.toDateString();
   });
