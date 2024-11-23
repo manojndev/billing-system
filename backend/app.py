@@ -28,10 +28,10 @@ class OrderItem(BaseModel):
     priceExcludingTax: Optional[Union[float, str]] = None
     price_including_tax: Optional[Union[float, str]] = None
     customQuantity: Optional[str] = None  # 'yes' or 'no'
-    predefinedQuantities	: Optional[List[int]] = None
+    predefinedQuantities: Optional[List[int]] = None
     unit: Optional[str] = None
-    taxPercentage	: Optional[Union[float, str]] = None
-    
+    taxPercentage: Optional[Union[float, str]] = None
+
 class Item(BaseModel):
     custom_quantity: Optional[str] = None
     customQuantity: Optional[str] = None
@@ -55,6 +55,11 @@ class Order(BaseModel):
 
 class Orders(BaseModel):
     orders: Dict[str, Order]
+
+class Store(BaseModel):
+    store_name: str
+    location: str
+    address: str
 
 @app.get("/fetch-data")
 async def fetch_data():
@@ -95,7 +100,7 @@ async def fetch_items(last_key: Optional[str] = None, page_size: int = 10):
     try:
         items_ref = db.collection("items")
         if last_key:
-            query = items_ref.order_by("id").start_after({ "id": last_key }).limit(page_size)
+            query = items_ref.order_by("id").start_after({"id": last_key}).limit(page_size)
         else:
             query = items_ref.limit(page_size)
         snapshot = query.get()
@@ -105,7 +110,7 @@ async def fetch_items(last_key: Optional[str] = None, page_size: int = 10):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/fetch-all-items")
-async def fetch_all_items():#
+async def fetch_all_items():
     try:
         items_ref = db.collection("items")
         snapshot = items_ref.get()
@@ -127,7 +132,6 @@ async def add_item(item_data: OrderItem):
 async def update_item(id: str, item_data: OrderItem):
     try:
         print(item_data.dict())
-
         item_ref = db.collection("items").document(id)
         item_ref.update(item_data.dict())
         return item_data
@@ -148,7 +152,7 @@ async def fetch_orders(limit_value: int = 40, start_after_key: Optional[str] = N
     try:
         orders_ref = db.collection("orders")
         if start_after_key:
-            query = orders_ref.start_after({ "id": start_after_key }).limit(limit_value)
+            query = orders_ref.start_after({"id": start_after_key}).limit(limit_value)
         else:
             query = orders_ref.limit(limit_value)
         snapshot = query.get()
@@ -164,6 +168,44 @@ async def fetch_all_orders():
         snapshot = orders_ref.get()
         orders = {doc.id: doc.to_dict() for doc in snapshot}
         return orders
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Store management endpoints
+@app.get("/stores")
+async def fetch_stores():
+    try:
+        stores_ref = db.collection("stores")
+        snapshot = stores_ref.get()
+        stores = [{"store_id": doc.id, **doc.to_dict()} for doc in snapshot]
+        return stores
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/add_store")
+async def add_store(store_data: Store):
+    try:
+        stores_ref = db.collection("stores")
+        stores_ref.add(store_data.dict())
+        return store_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/update_store/{store_id}")
+async def update_store(store_id: str, store_data: Store):
+    try:
+        store_ref = db.collection("stores").document(store_id)
+        store_ref.update(store_data.dict())
+        return store_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/delete_store/{store_id}")
+async def delete_store(store_id: str):
+    try:
+        store_ref = db.collection("stores").document(store_id)
+        store_ref.delete()
+        return {"message": "Store deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

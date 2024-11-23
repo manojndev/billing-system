@@ -314,12 +314,12 @@ const PosPage: React.FC = () => {
           <a className="btn btn-ghost normal-case text-xl">Selvam broilers POS Demo</a>
         </div>
         <div className="flex-none">
-          <button
+          {/* <button
             className="btn btn-sm btn-primary"
             onClick={() => setTheme(theme === 'dark' ? 'garden' : 'dark')}
           >
             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-          </button>
+          </button> */}
         </div>
       </div>
 
