@@ -128,7 +128,7 @@ export const fetchStores = async (): Promise<any> => {
   }
 };
 
-export const addStore = async (storeData: { store_name: string; location: string; address: string }): Promise<any> => {
+export const addStore = async (storeData: { store_name: string; city: string; address: string; gst: string; pincode: string }): Promise<any> => {
   try {
     const response = await api.post('/add_store', storeData);
     console.log('Store added successfully:', response.data);
@@ -139,7 +139,7 @@ export const addStore = async (storeData: { store_name: string; location: string
   }
 };
 
-export const updateStore = async (store_id: string, storeData: { store_name: string; location: string; address: string }): Promise<any> => {
+export const updateStore = async (store_id: string, storeData: { store_name: string; city: string; address: string; gst: string; pincode: string }): Promise<any> => {
   try {
     const response = await api.put(`/update_store/${store_id}`, storeData);
     console.log('Store updated successfully:', response.data);

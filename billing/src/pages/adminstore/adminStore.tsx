@@ -6,15 +6,17 @@ import './style.css';
 interface Store {
   store_id: string;
   store_name: string;
-  location: string;
+  city: string;
   address: string;
+  gst: string;
+  pincode: string;
 }
 
 const StoresPage: React.FC = () => {
   const [stores, setStores] = useState<Store[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editStore, setEditStore] = useState<Store | null>(null);
-  const [newStore, setNewStore] = useState<Store>({ store_id: '', store_name: '', location: '', address: '' });
+  const [newStore, setNewStore] = useState<Store>({ store_id: '', store_name: '', city: '', address: '', gst: '', pincode: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,15 +43,15 @@ const StoresPage: React.FC = () => {
   };
 
   const handleAddStore = () => {
-    if (!newStore.store_name || !newStore.location || !newStore.address) {
-      alert('Store Name, Location, and Address are mandatory fields.');
+    if (!newStore.store_name || !newStore.city || !newStore.address || !newStore.gst || !newStore.pincode) {
+      alert('Store Name, City, Address, GST, and Pincode are mandatory fields.');
       return;
     }
     setIsActionLoading(true);
     addStore(newStore)
       .then(() => {
         setShowModal(false);
-        setNewStore({ store_id: '', store_name: '', location: '', address: '' });
+        setNewStore({ store_id: '', store_name: '', city: '', address: '', gst: '', pincode: '' });
         loadStores();
         setIsActionLoading(false);
       })
@@ -60,8 +62,8 @@ const StoresPage: React.FC = () => {
   };
 
   const handleEditStore = () => {
-    if (editStore && (!newStore.store_name || !newStore.location || !newStore.address)) {
-      alert('Store Name, Location, and Address are mandatory fields.');
+    if (editStore && (!newStore.store_name || !newStore.city || !newStore.address || !newStore.gst || !newStore.pincode)) {
+      alert('Store Name, City, Address, GST, and Pincode are mandatory fields.');
       return;
     }
     if (editStore) {
@@ -70,7 +72,7 @@ const StoresPage: React.FC = () => {
         .then(() => {
           setShowModal(false);
           setEditStore(null);
-          setNewStore({ store_id: '', store_name: '', location: '', address: '' });
+          setNewStore({ store_id: '', store_name: '', city: '', address: '', gst: '', pincode: '' });
           loadStores();
           setIsActionLoading(false);
         })
@@ -97,7 +99,7 @@ const StoresPage: React.FC = () => {
   };
 
   const openAddModal = () => {
-    setNewStore({ store_id: '', store_name: '', location: '', address: '' });
+    setNewStore({ store_id: '', store_name: '', city: '', address: '', gst: '', pincode: '' });
     setEditStore(null);
     setShowModal(true);
   };
@@ -129,15 +131,17 @@ const StoresPage: React.FC = () => {
         <thead>
           <tr>
             <th>Store Name</th>
-            <th>Location</th>
+            <th>City</th>
             <th>Address</th>
+            <th>GST</th>
+            <th>Pincode</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {isLoading ? (
             <tr>
-              <td colSpan={4} className="text-center">
+              <td colSpan={6} className="text-center">
                 <span className="loading loading-spinner loading-lg"></span>
               </td>
             </tr>
@@ -145,8 +149,10 @@ const StoresPage: React.FC = () => {
             filteredStores.map((store) => (
               <tr key={store.store_id}>
                 <td>{store.store_name}</td>
-                <td>{store.location}</td>
+                <td>{store.city}</td>
                 <td>{store.address}</td>
+                <td>{store.gst}</td>
+                <td>{store.pincode}</td>
                 <td>
                   <button onClick={() => openEditModal(store)} className={`btn btn-sm btn-secondary ${isActionLoading ? 'btn-loading' : ''}`}>Edit</button>
                   <button onClick={() => handleDeleteStore(store.store_id)} className={`btn btn-sm btn-danger ml-2 ${isActionLoading ? 'btn-loading' : ''}`}>Delete</button>
@@ -170,12 +176,12 @@ const StoresPage: React.FC = () => {
               onChange={(e) => handleInputChange(e, 'store_name')}
               className="input input-bordered w-full mt-2"
             />
-            <label className="block mt-2">Location</label>
+            <label className="block mt-2">City</label>
             <input
               type="text"
-              placeholder="Location"
-              value={newStore.location}
-              onChange={(e) => handleInputChange(e, 'location')}
+              placeholder="City"
+              value={newStore.city}
+              onChange={(e) => handleInputChange(e, 'city')}
               className="input input-bordered w-full mt-2"
             />
             <label className="block mt-2">Address</label>
@@ -184,6 +190,22 @@ const StoresPage: React.FC = () => {
               placeholder="Address"
               value={newStore.address}
               onChange={(e) => handleInputChange(e, 'address')}
+              className="input input-bordered w-full mt-2"
+            />
+            <label className="block mt-2">GST</label>
+            <input
+              type="text"
+              placeholder="GST"
+              value={newStore.gst}
+              onChange={(e) => handleInputChange(e, 'gst')}
+              className="input input-bordered w-full mt-2"
+            />
+            <label className="block mt-2">Pincode</label>
+            <input
+              type="text"
+              placeholder="Pincode"
+              value={newStore.pincode}
+              onChange={(e) => handleInputChange(e, 'pincode')}
               className="input input-bordered w-full mt-2"
             />
             <div className="modal-action">
