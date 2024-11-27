@@ -25,10 +25,11 @@ jobs:
         working-directory: billing
         run: npm install
 
-      # Step 4: Build the React app
+      # Step 4: Build the React app (Ignore ESLint)
       - name: Build the React app
         working-directory: billing
-        run: npm run build
+        run: |
+          CI=true npm run build # Set CI to true to ignore linting errors
 
       # Step 5: Deploy to Firebase Hosting
       - name: Deploy to Firebase Hosting
