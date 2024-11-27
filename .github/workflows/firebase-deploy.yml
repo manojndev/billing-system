@@ -31,9 +31,9 @@ jobs:
         run: npm run build
 
       # Step 5: Deploy to Firebase Hosting
-      - name: Deploy to Firebase
-        uses: w9jds/firebase-action@v2
+      - name: Deploy to Firebase Hosting
+        uses: firebase/firebase-tools-action@v10
         with:
-          args:  deploy --only hosting --project selvambroilserspos
+          args: deploy --only hosting --project selvambroilserspos
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
