@@ -3,7 +3,7 @@ name: Deploy React App to Firebase Hosting
 on:
   push:
     branches:
-      - python-based
+      - main
 
 jobs:
   build-and-deploy:
@@ -11,7 +11,7 @@ jobs:
 
     steps:
       # Step 1: Checkout the code
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       # Step 2: Set up Node.js
@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: 18 # Use a compatible Node.js version
 
-      # Step 3: Navigate to the billing folder and install dependencies
+      # Step 3: Install dependencies
       - name: Install dependencies
         working-directory: billing
         run: npm install
@@ -32,8 +32,8 @@ jobs:
 
       # Step 5: Deploy to Firebase Hosting
       - name: Deploy to Firebase Hosting
-        uses: firebase/firebase-tools-action@v10
+        uses: FirebaseExtended/action-hosting-deploy@v0 
         with:
-          args: deploy --only hosting --project selvambroilserspos
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: selvambroilserspos
