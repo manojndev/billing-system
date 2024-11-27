@@ -29,7 +29,8 @@ jobs:
       - name: Build the React app
         working-directory: billing
         run: |
-          CI=true npm run build || true # Set CI to true to ignore linting errors and continue build even if there are errors
+          echo "DISABLE_ESLINT_PLUGIN=true" > .env
+          CI=true npm run build
 
       # Step 5: Deploy to Firebase Hosting
       - name: Deploy to Firebase Hosting
