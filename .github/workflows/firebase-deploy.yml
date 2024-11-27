@@ -1,0 +1,39 @@
+name: Deploy React App to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18 # Use a compatible Node.js version
+
+      # Step 3: Navigate to the billing folder and install dependencies
+      - name: Install dependencies
+        working-directory: billing
+        run: npm install
+
+      # Step 4: Build the React app
+      - name: Build the React app
+        working-directory: billing
+        run: npm run build
+
+      # Step 5: Deploy to Firebase Hosting
+      - name: Deploy to Firebase
+        uses: w9jds/firebase-action@v2
+        with:
+          args:  deploy --only hosting --project selvambroilserspos
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
