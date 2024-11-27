@@ -1,5 +1,5 @@
 import { Reducer, combineReducers, } from '@reduxjs/toolkit';
-import welcomeReducer from './slices/initial/initialslice';
+import welcomeReducer from './slices/items/itemslice';
 export type StateType = {
 };
 

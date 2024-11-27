@@ -1,45 +1,66 @@
 import React, { useEffect, useState } from 'react';
 import 'daisyui/dist/full.css';
 import './css/style.css';
-import { insertOrder } from '../../service/service'; // Import the insertOrder function
+import { fetchAllItems, getOrderCount, insertOrder } from '../../service/service';
+import moment from 'moment-timezone';
+import { sendPrintJob } from '../../service/printService'; // Import the sendPrintJob function
 
 interface Item {
-  id: number;
+  id: string;
   name: string;
-  price: number;
+  priceExcludingTax?: number; // Change price to priceExcludingTax
   qty?: number;
   customQuantity?: 'yes' | 'no';
   predefinedQuantities?: number[];
   unit?: string;
+  taxPercentage?: number;
 }
 
-const PosPage: React.FC = () => {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [drinks] = useState<Item[]>([
-    { id: 0, name: "Chicken", price: 290, customQuantity: 'yes', predefinedQuantities: [0.25, 0.5, 0.75, 1], unit: 'kg' },
-    { id: 1, name: "Kaadai", price: 300, customQuantity: 'no' },
-    { id: 2, name: "Janatha", price: 300, customQuantity: 'no' },
-  ]);
+interface PrintItem {
+  name: string;
+  qty: number;
+  price: number;
+  gst: number;
+  amount_with_gst: number;
+}
 
+interface PrintJob {
+  items: PrintItem[];
+  total: number;
+}
+
+const ITEMS_PER_PAGE = 25;
+const BUTTON_TEXT_LIMIT = 20;
+const TABLE_TEXT_LIMIT = 15;
+
+const PosPage: React.FC = () => {
+  const [theme, setTheme] = useState<'dark' | 'garden'>('garden');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [items, setItems] = useState<Item[]>([]);
   const [order, setOrder] = useState<Item[]>([]);
   const [totOrders, setTotOrders] = useState(0);
   const [activeTab, setActiveTab] = useState<'items'>('items');
   const [showModal, setShowModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-  const [customQty, setCustomQty] = useState(1);
+  const [customQty, setCustomQty] = useState<string>('');
   const [inputMode, setInputMode] = useState<'quantity' | 'price'>('quantity');
-  const [customPrice, setCustomPrice] = useState(0);
+  const [customPrice, setCustomPrice] = useState<string>('');
+  const [counterLoading, setCounterLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [countdown, setCountdown] = useState(60); // Countdown timer in seconds
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
-  const getDate = () => {
-    const today = new Date();
-    const mm = today.getMonth() + 1;
-    const dd = today.getDate();
-    const yyyy = today.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
+  const getTimestamp = () => {
+    return new Date().toISOString();
+  };
+
+  const getFormattedTimestamp = () => {
+    return moment().tz('Asia/Kolkata').format('MMMM Do YYYY, h:mm:ss A');
   };
 
   const addToOrder = (item: Item, qty: number) => {
+    if (qty <= 0) return; // Prevent adding zero quantity
+
     const updatedOrder = [...order];
     const existingItem = updatedOrder.find((i) => i.id === item.id);
 
@@ -63,17 +84,19 @@ const PosPage: React.FC = () => {
 
   const handleConfirmQty = () => {
     if (selectedItem) {
-      let qty = customQty;
-      if (inputMode === 'price' && selectedItem.price > 0) {
-        qty = customPrice / selectedItem.price;
+      let qty = parseFloat(customQty);
+      if (inputMode === 'price' && selectedItem.priceExcludingTax && selectedItem.priceExcludingTax > 0) {
+        qty = parseFloat(customPrice) / selectedItem.priceExcludingTax;
       }
 
-      addToOrder(selectedItem, qty);
-      setShowModal(false);
-      setCustomQty(1);
-      setCustomPrice(0);
-      setSelectedItem(null);
-      setInputMode('quantity');
+      if (qty > 0) {
+        addToOrder(selectedItem, qty);
+        setShowModal(false);
+        setCustomQty('');
+        setCustomPrice('');
+        setSelectedItem(null);
+        setInputMode('quantity');
+      }
     }
   };
 
@@ -95,7 +118,11 @@ const PosPage: React.FC = () => {
   };
 
   const getTotal = () => {
-    return order.reduce((total, i) => total + (i.price * (i.qty || 1)), 0);
+    return order.reduce((total, i) => {
+      const itemTotal = (i.priceExcludingTax || 0) * (i.qty || 1);
+      const taxAmount = itemTotal * ((i.taxPercentage || 0) / 100);
+      return total + itemTotal + taxAmount;
+    }, 0);
   };
 
   const clearOrder = () => {
@@ -103,42 +130,115 @@ const PosPage: React.FC = () => {
   };
 
   const checkout = () => {
+    setIsCheckoutLoading(true);
     const orderData = {
-      date: getDate(),
+      date: getTimestamp(),
       orderNumber: totOrders + 1,
       items: order,
       totalAmount: getTotal().toFixed(2),
     };
 
-    // Insert the order into Firebase
     insertOrder(orderData)
       .then(() => {
-        alert(
-          `${orderData.date} - Order Number: ₹${orderData.orderNumber}\n\nOrder amount: ₹${orderData.totalAmount}\n\nPayment received. Thanks.`
-        );
-        clearOrder();
         setTotOrders(totOrders + 1);
+        // Map order items to print items
+        const printItems: PrintItem[] = order.map((item) => ({
+          name: item.name,
+          qty: item.qty || 0,
+          price: item.priceExcludingTax || 0,
+          gst: item.taxPercentage || 0,
+          amount_with_gst: ((item.priceExcludingTax || 0) * (item.qty || 1) * (1 + (item.taxPercentage || 0) / 100)),
+        }));
+
+        // Create print job
+        const printJob: PrintJob = {
+          items: printItems,
+          total: parseFloat(orderData.totalAmount),
+        };
+
+        // Send print job
+        return sendPrintJob(printJob);
       })
       .catch((error) => {
         console.error("Failed to insert order:", error);
         alert("Failed to process order. Please try again.");
+      })
+      .finally(() => {
+        setIsCheckoutLoading(false);
       });
+  };
+
+  const startNewBill = () => {
+    clearOrder();
   };
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  const filteredDrinks = drinks.filter((drink) =>
-    drink.name.toLowerCase().includes(searchTerm.toLowerCase())
+  useEffect(() => {
+    getOrderCount()
+      .then((count) => {
+        setTotOrders(count + 1);
+      })
+      .finally(() => {
+        setCounterLoading(false);
+      });
+
+    fetchAllItems().then((val) => {
+      console.log("sam valton", val);
+      setItems(val);
+    });
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCountdown((prevCountdown) => (prevCountdown > 0 ? prevCountdown - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const filteredItems = items.filter((item) =>
+    item.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+  const currentItems = filteredItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key === 'Enter' && showModal) {
+        handleConfirmQty();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => {
+      document.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [showModal, selectedItem, customQty, customPrice, inputMode]);
+
+  const truncateText = (text: string, limit: number) => {
+    return text.length > limit ? text.substring(0, limit) + '...' : text;
+  };
+
   return (
     <div className="container mx-auto p-4">
+      {counterLoading && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-50">
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+            <p className="text-white text-lg">Loading...</p>
+          </div>
+        </div>
+      )}
+
       {showModal && (
         <div className="modal modal-open">
           <div className="modal-box">
             <h3 className="font-bold text-lg">Enter Quantity or Price for {selectedItem?.name}</h3>
-            
+
             <div className="form-control">
               <label className="label cursor-pointer">
                 <span className="label-text">Quantity</span>
@@ -168,7 +268,7 @@ const PosPage: React.FC = () => {
                 min="1"
                 className="input input-bordered w-full mt-4"
                 value={customQty}
-                onChange={(e) => setCustomQty(Number(e.target.value))}
+                onChange={(e) => setCustomQty(e.target.value)}
               />
             ) : (
               <input
@@ -176,11 +276,10 @@ const PosPage: React.FC = () => {
                 min="1"
                 className="input input-bordered w-full mt-4"
                 value={customPrice}
-                onChange={(e) => setCustomPrice(Number(e.target.value))}
+                onChange={(e) => setCustomPrice(e.target.value)}
               />
             )}
 
-            {/* Render predefined quantity buttons */}
             {selectedItem?.predefinedQuantities && (
               <div className="mt-4">
                 {selectedItem.predefinedQuantities.map((quantity) => (
@@ -189,7 +288,7 @@ const PosPage: React.FC = () => {
                     className="btn btn-outline mr-2"
                     onClick={() => {
                       addToOrder(selectedItem, quantity);
-                      setShowModal(false); // Close modal after adding to order
+                      setShowModal(false);
                     }}
                   >
                     {quantity} {selectedItem.unit}
@@ -215,34 +314,35 @@ const PosPage: React.FC = () => {
           <a className="btn btn-ghost normal-case text-xl">Selvam broilers POS Demo</a>
         </div>
         <div className="flex-none">
-          <button
+          {/* <button
             className="btn btn-sm btn-primary"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            onClick={() => setTheme(theme === 'dark' ? 'garden' : 'dark')}
           >
             {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-          </button>
+          </button> */}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
         <div className="box">
           <div className="text-info flex justify-between">
-            <span>Order Summary</span>
-            <span>Today: {getDate()}</span>
-            <span>
-              Total Orders: <span className="badge badge-primary">{totOrders}</span>
+            <span className="font-bold text-black">Order Summary</span>
+            <span className="font-bold text-black">Today: {getFormattedTimestamp()}</span>
+            <span className="font-bold text-black">
+              Total Orders: <span className="badge badge-primary">{totOrders+1}</span>
             </span>
           </div>
 
-          <div className="overflow-auto max-h-64 mt-4">
+          <div className="table-container overflow-auto mt-4">
             {order.length === 0 && <div className="text-warning">Nothing ordered yet!</div>}
 
-            <table className="table w-full bg-base-100 rounded-box">
+            <table className="table w-full bg-base-100 rounded-box table-responsive">
               <thead>
                 <tr>
-                  <th>Qty</th>
                   <th>Item</th>
                   <th>Price</th>
+                  <th>Qty</th>
+                  <th>Tax %</th>
                   <th>Total</th>
                   <th>Actions</th>
                 </tr>
@@ -250,13 +350,22 @@ const PosPage: React.FC = () => {
               <tbody>
                 {order.map((item) => (
                   <tr key={item.id} className="hover">
+                    <td className="truncate max-w-xs break-words">{truncateText(item.name, TABLE_TEXT_LIMIT)}</td>
+                    <td className="text-center">₹{item.priceExcludingTax?.toFixed(2) || 'N/A'}</td>
                     <td className="text-center">
-                      <span className="badge badge-info">{item.qty?.toFixed(2)}</span>
+                      <span className="badge badge-info">
+                        {item.qty?.toFixed(2)} {item.unit}
+                      </span>
                     </td>
-                    <td>{item.name}</td>
-                    <td className="text-center">₹{item.price.toFixed(2)}</td>
-                    <td className="text-center">₹{(item.price * (item.qty || 1)).toFixed(2)}</td>
+                    <td className="text-center">{item.taxPercentage || 0}%</td>
+                    <td className="text-center">₹{((item.priceExcludingTax || 0) * (item.qty || 1) * (1 + (item.taxPercentage || 0) / 100)).toFixed(2)}</td>
                     <td className="flex justify-center space-x-1">
+                      <button
+                        className="btn btn-sm btn-success"
+                        onClick={() => addToOrder(item, 1)}
+                      >
+                        +
+                      </button>
                       <button
                         className="btn btn-sm btn-primary"
                         onClick={() => removeOneEntity(item)}
@@ -277,11 +386,12 @@ const PosPage: React.FC = () => {
             Total: ₹{getTotal().toFixed(2)}
           </div>
           <div className="flex justify-between mt-4">
-            <button className="btn btn-danger" onClick={clearOrder}>
-              Clear Order
+            <button className="btn btn-primary" onClick={startNewBill}>
+              <span className="text-xl">+</span> New Bill
             </button>
-            <button className="btn btn-success" onClick={checkout}>
-              Checkout
+
+            <button className="btn btn-success" onClick={checkout} disabled={order.length === 0 || isCheckoutLoading}>
+              {isCheckoutLoading ? 'Processing...' : 'Print'}
             </button>
           </div>
         </div>
@@ -296,22 +406,38 @@ const PosPage: React.FC = () => {
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-            {filteredDrinks.map((drink) => (
-              <div key={drink.id} className="card bg-base-100 shadow-xl">
-                <div className="card-body">
-                  <h2 className="card-title">{drink.name}</h2>
-                  <p>Price: ₹{drink.price.toFixed(2)}</p>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => handleItemClick(drink)}
-                  >
-                    {drink.customQuantity === 'yes' ? 'Custom Qty' : 'Add to Order'}
-                  </button>
-                </div>
-              </div>
+            {currentItems.map((item) => (
+              <button
+                key={item.id}
+                className="btn btn-outline"
+                onClick={() => handleItemClick(item)}
+              >
+                {truncateText(item.name, BUTTON_TEXT_LIMIT)} - ₹{item.priceExcludingTax?.toFixed(2) || 'N/A'}
+              </button>
             ))}
           </div>
+
+          <div className="flex justify-center mt-4">
+            <button
+              className="btn btn-sm btn-primary mr-2"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <button
+              className="btn btn-sm btn-primary"
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
         </div>
+      </div>
+
+      <div className="fixed bottom-4 right-4">
+
       </div>
     </div>
   );

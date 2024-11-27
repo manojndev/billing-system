@@ -1,6 +1,6 @@
 import { call, put, takeLatest } from 'redux-saga/effects';
-import { fetchWelcomeSuccess, fetchWelcomeFailure, fetchWelcomeStart } from './initialslice';
-import { fetchWelcomeApi } from './initialapi';
+import { fetchWelcomeSuccess, fetchWelcomeFailure, fetchWelcomeStart } from './itemslice';
+import { fetchWelcomeApi } from './itemapi';
 
 function* fetchWelcomeSaga(): any {
     try {

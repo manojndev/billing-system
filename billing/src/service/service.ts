@@ -1,67 +1,162 @@
-// Import Firebase dependencies
-import { initializeApp } from "firebase/app";
-import { getDatabase, ref, onValue ,push, get , child } from "firebase/database";
-import firebaseconfig from "../firebase/firebaseconfig";
-// Initialize Firebase app
+import axios from 'axios';
 
-// Get a reference to the Realtime Database
-const database = getDatabase(firebaseconfig);
+const api = axios.create({
+  baseURL: 'http://localhost:5000', // Adjust the base URL as needed
+});
 
-// Function to fetch data from a specific path in the database
-// Function to fetch data from a specific path in the database
-export const fetchData = () => {
-  return new Promise((resolve, reject) => {
-    const dataRef = ref(database, "/"); // Replace with your actual database path
-
-    // Listen for changes in the data
-    onValue(
-      dataRef,
-      (snapshot) => {
-        const data = snapshot.val();
-        console.log("Realtime Database Data:", data);
-        resolve(data); // Resolve the promise with the fetched data
-      },
-      (error) => {
-        console.error("Error fetching data:", error);
-        reject(error); // Reject the promise if there's an error
-      }
-    );
-  });
+export const fetchData = async (): Promise<any> => {
+  try {
+    const response = await api.get('/fetch-data');
+    console.log('Fetched Data:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching data:', error);
+    throw error;
+  }
 };
 
-// Function to insert an order into the Firebase Realtime Database
-export const insertOrder = (orderData: any) => {
-  return new Promise((resolve, reject) => {
-    const ordersRef = ref(database, "orders");
-    push(ordersRef, orderData)
-      .then(() => {
-        console.log("Order inserted successfully:", orderData);
-        resolve(orderData); // Resolve the promise if the insertion is successful
-      })
-      .catch((error) => {
-        console.error("Error inserting order:", error);
-        reject(error); // Reject the promise if there's an error
-      });
-  });
+export const insertOrder = async (orderData: any): Promise<any> => {
+  try {
+    const response = await api.post('/insert-order', orderData);
+    console.log('Order inserted successfully:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error inserting order:', error);
+    throw error;
+  }
 };
 
-// Function to retrieve the total number of orders from Firebase
-export const getOrderCount = () => {
-  return new Promise<number>((resolve, reject) => {
-    const ordersRef = ref(database, "orders");
-    get(child(ordersRef, "/"))
-      .then((snapshot) => {
-        if (snapshot.exists()) {
-          const orderCount = snapshot.size;
-          console.log("Total Orders Count:", orderCount);
-          resolve(orderCount);
-        } else {
-          resolve(0); // No orders found, resolve with 0
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching order count:", error);
-        reject(error);
-      });
-  });
+export const getOrderCount = async (): Promise<any> => {
+  try {
+    const response = await api.get('/order-count');
+    console.log('Total Orders Count:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching order count:', error);
+    throw error;
+  }
+};
+
+export const fetchItems = async (lastKey: any, pageSize: any): Promise<any> => {
+  try {
+    const response = await api.get('/fetch-items', {
+      params: { lastKey, pageSize },
+    });
+    console.log('Fetched items:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching items:', error);
+    throw error;
+  }
+};
+
+export const fetchAllItems = async (): Promise<any> => {
+  try {
+    const response = await api.get('/fetch-all-items');
+    console.log('Fetched items:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching items:', error);
+    throw error;
+  }
+};
+
+export const addItem = async (itemData: any): Promise<any> => {
+  try {
+    const response = await api.post('/add-item', itemData);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error adding item:', error);
+    throw error;
+  }
+};
+
+export const updateItem = async (id: any, itemData: any): Promise<any> => {
+  try {
+    console.log('Item Data:', itemData);
+    const response = await api.put(`/update-item/${id}`, itemData);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error updating item:', error);
+    throw error;
+  }
+};
+
+export const deleteItem = async (id: any): Promise<any> => {
+  try {
+    const response = await api.delete(`/delete-item/${id}`);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error deleting item:', error);
+    throw error;
+  }
+};
+
+export const fetchOrders = async (limitValue: any = 40, startAfterKey: any = null): Promise<any> => {
+  try {
+    const response = await api.get('/fetch-orders', {
+      params: { limitValue, startAfterKey },
+    });
+    console.log('Fetched Orders:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching orders:', error);
+    throw error;
+  }
+};
+
+export const fetchAllOrders = async (): Promise<any> => {
+  try {
+    const response = await api.get('/fetch-all-orders');
+    console.log('Fetched Orders:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching orders:', error);
+    throw error;
+  }
+};
+
+// Store management functions
+export const fetchStores = async (): Promise<any> => {
+  try {
+    const response = await api.get('/stores');
+    console.log('Fetched stores:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching stores:', error);
+    throw error;
+  }
+};
+
+export const addStore = async (storeData: { store_name: string; city: string; address: string; gst: string; pincode: string }): Promise<any> => {
+  try {
+    const response = await api.post('/add_store', storeData);
+    console.log('Store added successfully:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error adding store:', error);
+    throw error;
+  }
+};
+
+export const updateStore = async (store_id: string, storeData: { store_name: string; city: string; address: string; gst: string; pincode: string }): Promise<any> => {
+  try {
+    const response = await api.put(`/update_store/${store_id}`, storeData);
+    console.log('Store updated successfully:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error updating store:', error);
+    throw error;
+  }
+};
+
+export const deleteStore = async (store_id: string): Promise<any> => {
+  try {
+    const response = await api.delete(`/delete_store/${store_id}`);
+    console.log('Store deleted successfully:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error deleting store:', error);
+    throw error;
+  }
 };
